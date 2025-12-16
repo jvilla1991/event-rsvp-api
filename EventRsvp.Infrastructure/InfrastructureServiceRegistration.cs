@@ -14,9 +14,23 @@ public static class InfrastructureServiceRegistration
         IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection");
+        
+        // Check environment variable directly (set by test setup)
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        var isTesting = environment == "Testing";
 
-        services.AddDbContext<EventRsvpDbContext>(options =>
-            options.UseNpgsql(connectionString));
+        // Use in-memory database for testing
+        if (isTesting)
+        {
+            var dbName = Environment.GetEnvironmentVariable("TEST_DB_NAME") ?? "TestDb";
+            services.AddDbContext<EventRsvpDbContext>(options =>
+                options.UseInMemoryDatabase(dbName));
+        }
+        else
+        {
+            services.AddDbContext<EventRsvpDbContext>(options =>
+                options.UseNpgsql(connectionString));
+        }
 
         services.AddScoped<IRsvpRepository, RsvpRepository>();
 
