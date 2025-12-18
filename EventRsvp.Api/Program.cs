@@ -114,7 +114,8 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
 });
 
 // Ensure database is created (for development)
-if (app.Environment.IsDevelopment())
+// Skip in test environment to avoid conflicts with test database setup
+if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<EventRsvp.Infrastructure.Data.EventRsvpDbContext>();
@@ -122,3 +123,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.Run();
+
+// Make Program class accessible for testing
+public partial class Program { }
