@@ -124,7 +124,7 @@ public class CreateRsvpHandlerTests
     }
 
     [Test]
-    public void HandleAsync_WhenInvalidRsvp_ShouldThrowException()
+    public async Task HandleAsync_WhenInvalidRsvp_ShouldThrowException()
     {
         // Arrange
         var request = new CreateRsvpRequest
@@ -135,7 +135,7 @@ public class CreateRsvpHandlerTests
 
         // Act & Assert
         var act = async () => await _handler.HandleAsync(request);
-        act.Should().ThrowAsync<Exception>();
+        await act.Should().ThrowAsync<Exception>();
     }
 }
 
