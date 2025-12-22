@@ -1,0 +1,21 @@
+version: 1.0
+runtime: dotnet9
+build:
+  commands:
+    build:
+      - echo "Building application..."
+      - dotnet restore
+      - dotnet build -c Release
+      - dotnet publish -c Release -o /app/publish
+run:
+  runtime-version: 9.0
+  command: dotnet EventRsvp.Api.dll
+  network:
+    port: 8080
+    env: PORT
+  env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: ASPNETCORE_URLS
+      value: http://+:8080
+

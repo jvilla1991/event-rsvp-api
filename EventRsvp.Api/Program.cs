@@ -113,13 +113,23 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
     Predicate = _ => false
 });
 
-// Ensure database is created (for development)
+// Database setup
 // Skip in test environment to avoid conflicts with test database setup
-if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
+if (!app.Environment.IsEnvironment("Testing"))
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<EventRsvp.Infrastructure.Data.EventRsvpDbContext>();
-    await dbContext.Database.EnsureCreatedAsync();
+    
+    if (app.Environment.IsDevelopment())
+    {
+        // Ensure database is created (for development)
+        await dbContext.Database.EnsureCreatedAsync();
+    }
+    else if (app.Environment.IsProduction())
+    {
+        // Run migrations in production
+        await dbContext.Database.MigrateAsync();
+    }
 }
 
 app.Run();
