@@ -1,0 +1,13 @@
+version: 1.0
+runtime: docker
+
+build:
+  commands:
+    build:
+      - docker build -t eventrsvp .
+
+run:
+  network:
+    port: 8080
+    env: PORT
+
