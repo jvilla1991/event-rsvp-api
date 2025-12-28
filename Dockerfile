@@ -23,8 +23,8 @@ RUN dotnet publish "EventRsvp.Api.csproj" -c Release -o /app/publish /p:UseAppHo
 # Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
+ENV ASPNETCORE_URLS=http://0.0.0.0:${PORT:-8080}
 EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080
 
 # Copy published app
 COPY --from=publish /app/publish .
