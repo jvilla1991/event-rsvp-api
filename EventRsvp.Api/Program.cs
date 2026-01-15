@@ -15,7 +15,15 @@ builder.Services.AddSwaggerGen();
 
 // Add CORS
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
-    ?? new[] { "http://localhost:5173", "http://localhost:3000" };
+    ?? new[] { "http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173" };
+
+// In development, add common localhost variations
+if (builder.Environment.IsDevelopment())
+{
+    var devOrigins = allowedOrigins.ToList();
+    devOrigins.AddRange(new[] { "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:3000" });
+    allowedOrigins = devOrigins.Distinct().ToArray();
+}
 
 builder.Services.AddCors(options =>
 {
@@ -24,7 +32,8 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials()
+              .SetPreflightMaxAge(TimeSpan.FromSeconds(3600));
     });
 });
 
@@ -46,7 +55,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// CORS must be very early in the pipeline, before exception handling and HTTPS redirection
 app.UseCors("AllowFrontend");
+
+// Only use HTTPS redirection in production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Global exception handling middleware
 app.UseExceptionHandler(errorApp =>
@@ -63,6 +79,11 @@ app.UseExceptionHandler(errorApp =>
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = invalidRsvpException.Message }));
         }
+        else if (exception is InvalidEventException invalidEventException)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = invalidEventException.Message }));
+        }
         else if (exception is DomainException domainException)
         {
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
@@ -74,8 +95,6 @@ app.UseExceptionHandler(errorApp =>
         }
     });
 });
-
-app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
