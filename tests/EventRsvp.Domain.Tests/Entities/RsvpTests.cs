@@ -9,13 +9,48 @@ namespace EventRsvp.Domain.Tests.Entities;
 public class RsvpTests
 {
     [Test]
+    public void Validate_WhenEventIdIsZero_ShouldThrowInvalidRsvpException()
+    {
+        // Arrange
+        var rsvp = new Rsvp
+        {
+            EventId = 0,
+            Name = "John Doe",
+            WillAttend = true
+        };
+
+        // Act & Assert
+        var act = () => rsvp.Validate();
+        act.Should().Throw<InvalidRsvpException>()
+            .WithMessage("*Event ID is required and must be greater than zero*");
+    }
+
+    [Test]
+    public void Validate_WhenEventIdIsNegative_ShouldThrowInvalidRsvpException()
+    {
+        // Arrange
+        var rsvp = new Rsvp
+        {
+            EventId = -1,
+            Name = "John Doe",
+            WillAttend = true
+        };
+
+        // Act & Assert
+        var act = () => rsvp.Validate();
+        act.Should().Throw<InvalidRsvpException>()
+            .WithMessage("*Event ID is required and must be greater than zero*");
+    }
+
+    [Test]
     public void Validate_WhenNameIsEmpty_ShouldThrowInvalidRsvpException()
     {
         // Arrange
         var rsvp = new Rsvp
         {
+            EventId = 1,
             Name = string.Empty,
-            BringingDish = false
+            WillAttend = true
         };
 
         // Act & Assert
@@ -30,8 +65,9 @@ public class RsvpTests
         // Arrange
         var rsvp = new Rsvp
         {
+            EventId = 1,
             Name = "   ",
-            BringingDish = false
+            WillAttend = true
         };
 
         // Act & Assert
@@ -41,48 +77,14 @@ public class RsvpTests
     }
 
     [Test]
-    public void Validate_WhenBringingDishButNoDishes_ShouldThrowInvalidRsvpException()
-    {
-        // Arrange
-        var rsvp = new Rsvp
-        {
-            Name = "John Doe",
-            BringingDish = true,
-            Dishes = new List<string>()
-        };
-
-        // Act & Assert
-        var act = () => rsvp.Validate();
-        act.Should().Throw<InvalidRsvpException>()
-            .WithMessage("If bringing a dish, at least one dish name is required.");
-    }
-
-    [Test]
-    public void Validate_WhenBringingDishButAllDishesAreEmpty_ShouldThrowInvalidRsvpException()
-    {
-        // Arrange
-        var rsvp = new Rsvp
-        {
-            Name = "John Doe",
-            BringingDish = true,
-            Dishes = new List<string> { "", "   ", null! }
-        };
-
-        // Act & Assert
-        var act = () => rsvp.Validate();
-        act.Should().Throw<InvalidRsvpException>()
-            .WithMessage("If bringing a dish, at least one dish name is required.");
-    }
-
-    [Test]
     public void Validate_WhenValidRsvp_ShouldNotThrow()
     {
         // Arrange
         var rsvp = new Rsvp
         {
+            EventId = 1,
             Name = "John Doe",
-            BringingDish = false,
-            WhiteElephant = true
+            WillAttend = true
         };
 
         // Act & Assert
@@ -91,14 +93,14 @@ public class RsvpTests
     }
 
     [Test]
-    public void Validate_WhenBringingDishWithValidDishes_ShouldNotThrow()
+    public void Validate_WhenValidRsvpNotAttending_ShouldNotThrow()
     {
         // Arrange
         var rsvp = new Rsvp
         {
+            EventId = 1,
             Name = "John Doe",
-            BringingDish = true,
-            Dishes = new List<string> { "Pasta Salad", "Brownies" }
+            WillAttend = false
         };
 
         // Act & Assert

@@ -27,29 +27,25 @@ public class EventRsvpDbContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd();
 
+            entity.Property(e => e.EventId)
+                .IsRequired();
+
             entity.Property(e => e.Name)
                 .IsRequired()
                 .HasMaxLength(200);
 
-            entity.Property(e => e.BringingDish)
-                .IsRequired();
-
-            entity.Property(e => e.Dishes)
-                .HasColumnType("jsonb")
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-                    v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>(),
-                    new ValueComparer<List<string>>(
-                        (c1, c2) => c1 != null && c2 != null && c1.SequenceEqual(c2),
-                        c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
-                        c => c.ToList()));
-
-            entity.Property(e => e.WhiteElephant)
+            entity.Property(e => e.WillAttend)
                 .IsRequired();
 
             entity.Property(e => e.CreatedAt)
                 .IsRequired()
                 .HasDefaultValueSql("NOW()");
+
+            // Configure foreign key relationship to Event
+            entity.HasOne<Event>()
+                .WithMany()
+                .HasForeignKey(e => e.EventId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Event>(entity =>

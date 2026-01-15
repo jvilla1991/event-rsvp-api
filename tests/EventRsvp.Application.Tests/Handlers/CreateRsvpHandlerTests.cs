@@ -11,14 +11,23 @@ namespace EventRsvp.Application.Tests.Handlers;
 [TestFixture]
 public class CreateRsvpHandlerTests
 {
-    private Mock<IRsvpRepository> _repositoryMock = null!;
+    private Mock<IRsvpRepository> _rsvpRepositoryMock = null!;
+    private Mock<IEventRepository> _eventRepositoryMock = null!;
     private CreateRsvpHandler _handler = null!;
+    private const int TestEventId = 1;
 
     [SetUp]
     public void SetUp()
     {
-        _repositoryMock = new Mock<IRsvpRepository>();
-        _handler = new CreateRsvpHandler(_repositoryMock.Object);
+        _rsvpRepositoryMock = new Mock<IRsvpRepository>();
+        _eventRepositoryMock = new Mock<IEventRepository>();
+        
+        // Setup default event to exist
+        _eventRepositoryMock
+            .Setup(r => r.GetByIdAsync(TestEventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Event { Id = TestEventId, Title = "Test Event" });
+        
+        _handler = new CreateRsvpHandler(_rsvpRepositoryMock.Object, _eventRepositoryMock.Object);
     }
 
     [Test]
@@ -28,35 +37,31 @@ public class CreateRsvpHandlerTests
         var request = new CreateRsvpRequest
         {
             Name = "John Doe",
-            BringingDish = true,
-            Dishes = new List<string> { "Pasta Salad" },
-            WhiteElephant = true
+            WillAttend = true
         };
 
         var expectedRsvp = new Rsvp
         {
             Id = 1,
+            EventId = TestEventId,
             Name = "John Doe",
-            BringingDish = true,
-            Dishes = new List<string> { "Pasta Salad" },
-            WhiteElephant = true,
+            WillAttend = true,
             CreatedAt = DateTime.UtcNow
         };
 
-        _repositoryMock
+        _rsvpRepositoryMock
             .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedRsvp);
 
         // Act
-        var result = await _handler.HandleAsync(request);
+        var result = await _handler.HandleAsync(TestEventId, request);
 
         // Assert
         result.Should().NotBeNull();
         result.Name.Should().Be("John Doe");
-        result.BringingDish.Should().BeTrue();
-        result.Dishes.Should().Contain("Pasta Salad");
-        result.WhiteElephant.Should().BeTrue();
-        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()), Times.Once);
+        result.WillAttend.Should().BeTrue();
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()), Times.Once);
+        _eventRepositoryMock.Verify(r => r.GetByIdAsync(TestEventId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -66,60 +71,28 @@ public class CreateRsvpHandlerTests
         var request = new CreateRsvpRequest
         {
             Name = "  John Doe  ",
-            BringingDish = false
+            WillAttend = true
         };
 
         var expectedRsvp = new Rsvp
         {
             Id = 1,
+            EventId = TestEventId,
             Name = "John Doe",
-            BringingDish = false,
+            WillAttend = true,
             CreatedAt = DateTime.UtcNow
         };
 
-        _repositoryMock
+        _rsvpRepositoryMock
             .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedRsvp);
 
         // Act
-        var result = await _handler.HandleAsync(request);
+        var result = await _handler.HandleAsync(TestEventId, request);
 
         // Assert
-        _repositoryMock.Verify(r => r.AddAsync(
-            It.Is<Rsvp>(rsvp => rsvp.Name == "John Doe"),
-            It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Test]
-    public async Task HandleAsync_WhenNotBringingDish_ShouldFilterOutEmptyDishes()
-    {
-        // Arrange
-        var request = new CreateRsvpRequest
-        {
-            Name = "John Doe",
-            BringingDish = false,
-            Dishes = new List<string> { "Some Dish" }
-        };
-
-        var expectedRsvp = new Rsvp
-        {
-            Id = 1,
-            Name = "John Doe",
-            BringingDish = false,
-            Dishes = new List<string>(),
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _repositoryMock
-            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expectedRsvp);
-
-        // Act
-        var result = await _handler.HandleAsync(request);
-
-        // Assert
-        _repositoryMock.Verify(r => r.AddAsync(
-            It.Is<Rsvp>(rsvp => rsvp.Dishes.Count == 0),
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Rsvp>(rsvp => rsvp.Name == "John Doe" && rsvp.EventId == TestEventId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -130,12 +103,97 @@ public class CreateRsvpHandlerTests
         var request = new CreateRsvpRequest
         {
             Name = string.Empty,
-            BringingDish = false
+            WillAttend = true
         };
 
         // Act & Assert
-        var act = async () => await _handler.HandleAsync(request);
+        var act = async () => await _handler.HandleAsync(TestEventId, request);
         await act.Should().ThrowAsync<Exception>();
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenEventNotFound_ShouldThrowException()
+    {
+        // Arrange
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            WillAttend = true
+        };
+
+        _eventRepositoryMock
+            .Setup(r => r.GetByIdAsync(999, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Event?)null);
+
+        // Act & Assert
+        var act = async () => await _handler.HandleAsync(999, request);
+        await act.Should().ThrowAsync<Domain.Exceptions.InvalidRsvpException>()
+            .WithMessage("*not found*");
+    }
+
+    [Test]
+    public async Task HandleAsync_ShouldSetEventIdOnRsvp()
+    {
+        // Arrange
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            WillAttend = true
+        };
+
+        var expectedRsvp = new Rsvp
+        {
+            Id = 1,
+            EventId = TestEventId,
+            Name = "John Doe",
+            WillAttend = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedRsvp);
+
+        // Act
+        await _handler.HandleAsync(TestEventId, request);
+
+        // Assert
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Rsvp>(rsvp => rsvp.EventId == TestEventId),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenWillAttendIsFalse_ShouldSetWillAttendToFalse()
+    {
+        // Arrange
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            WillAttend = false
+        };
+
+        var expectedRsvp = new Rsvp
+        {
+            Id = 1,
+            EventId = TestEventId,
+            Name = "John Doe",
+            WillAttend = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedRsvp);
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert
+        result.WillAttend.Should().BeFalse();
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Rsvp>(rsvp => rsvp.WillAttend == false && rsvp.EventId == TestEventId),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }
 
