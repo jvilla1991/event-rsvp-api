@@ -1,6 +1,8 @@
+using EventRsvp.Application.Services;
 using EventRsvp.Domain.Interfaces;
 using EventRsvp.Infrastructure.Data;
 using EventRsvp.Infrastructure.Data.Repositories;
+using EventRsvp.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,6 +35,7 @@ public static class InfrastructureServiceRegistration
 
         services.AddScoped<IRsvpRepository, RsvpRepository>();
         services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
 
         return services;
     }
