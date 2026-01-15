@@ -16,6 +16,11 @@ public class DeleteEventHandler
     /// <exception cref="ArgumentNullException">Thrown when repository is null</exception>
     public DeleteEventHandler(IEventRepository repository)
     {
+        if (repository == null)
+        {
+            throw new ArgumentNullException(nameof(repository));
+        }
+        
         _repository = repository;
     }
 
