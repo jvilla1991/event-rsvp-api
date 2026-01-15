@@ -63,6 +63,11 @@ app.UseExceptionHandler(errorApp =>
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = invalidRsvpException.Message }));
         }
+        else if (exception is InvalidEventException invalidEventException)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = invalidEventException.Message }));
+        }
         else if (exception is DomainException domainException)
         {
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;

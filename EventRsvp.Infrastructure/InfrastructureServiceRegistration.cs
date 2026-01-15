@@ -32,6 +32,7 @@ public static class InfrastructureServiceRegistration
         }
 
         services.AddScoped<IRsvpRepository, RsvpRepository>();
+        services.AddScoped<IEventRepository, EventRepository>();
 
         return services;
     }

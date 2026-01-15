@@ -9,6 +9,8 @@ public static class ApplicationServiceRegistration
     {
         services.AddScoped<CreateRsvpHandler>();
         services.AddScoped<GetRsvpsHandler>();
+        services.AddScoped<GetEventsHandler>();
+        services.AddScoped<GetEventHandler>();
 
         return services;
     }
