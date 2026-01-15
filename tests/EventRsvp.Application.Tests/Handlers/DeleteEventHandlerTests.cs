@@ -55,7 +55,7 @@ public class DeleteEventHandlerTests
             .ReturnsAsync(false);
 
         // Act
-        var result = await _handler.HandleAsync(NonExistentEventId);
+        var result = await _handler.HandleAsync(NonExistentEventId); 
 
         // Assert
         result.Should().BeFalse();
