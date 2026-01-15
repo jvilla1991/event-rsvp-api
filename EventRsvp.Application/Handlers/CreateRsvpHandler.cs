@@ -6,37 +6,40 @@ namespace EventRsvp.Application.Handlers;
 
 public class CreateRsvpHandler
 {
-    private readonly IRsvpRepository _repository;
+    private readonly IRsvpRepository _rsvpRepository;
+    private readonly IEventRepository _eventRepository;
 
-    public CreateRsvpHandler(IRsvpRepository repository)
+    public CreateRsvpHandler(IRsvpRepository rsvpRepository, IEventRepository eventRepository)
     {
-        _repository = repository;
+        _rsvpRepository = rsvpRepository;
+        _eventRepository = eventRepository;
     }
 
-    public async Task<RsvpResponse> HandleAsync(CreateRsvpRequest request, CancellationToken cancellationToken = default)
+    public async Task<RsvpResponse> HandleAsync(int eventId, CreateRsvpRequest request, CancellationToken cancellationToken = default)
     {
+        var eventEntity = await _eventRepository.GetByIdAsync(eventId, cancellationToken);
+        if (eventEntity == null)
+        {
+            throw new Domain.Exceptions.InvalidRsvpException($"Event with ID {eventId} not found.");
+        }
+
         var rsvp = new Rsvp
         {
+            EventId = eventId,
             Name = request.Name.Trim(),
-            BringingDish = request.BringingDish,
-            Dishes = request.BringingDish 
-                ? request.Dishes.Where(d => !string.IsNullOrWhiteSpace(d)).Select(d => d.Trim()).ToList()
-                : new List<string>(),
-            WhiteElephant = request.WhiteElephant,
+            WillAttend = request.WillAttend,
             CreatedAt = DateTime.UtcNow
         };
 
         rsvp.Validate();
 
-        var createdRsvp = await _repository.AddAsync(rsvp, cancellationToken);
+        var createdRsvp = await _rsvpRepository.AddAsync(rsvp, cancellationToken);
 
         return new RsvpResponse
         {
             Id = createdRsvp.Id,
             Name = createdRsvp.Name,
-            BringingDish = createdRsvp.BringingDish,
-            Dishes = createdRsvp.Dishes,
-            WhiteElephant = createdRsvp.WhiteElephant,
+            WillAttend = createdRsvp.WillAttend,
             CreatedAt = createdRsvp.CreatedAt
         };
     }

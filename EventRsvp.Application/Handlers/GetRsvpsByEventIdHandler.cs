@@ -3,18 +3,18 @@ using EventRsvp.Domain.Interfaces;
 
 namespace EventRsvp.Application.Handlers;
 
-public class GetRsvpsHandler
+public class GetRsvpsByEventIdHandler
 {
     private readonly IRsvpRepository _repository;
 
-    public GetRsvpsHandler(IRsvpRepository repository)
+    public GetRsvpsByEventIdHandler(IRsvpRepository repository)
     {
         _repository = repository;
     }
 
-    public async Task<IEnumerable<RsvpResponse>> HandleAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<RsvpResponse>> HandleAsync(int eventId, CancellationToken cancellationToken = default)
     {
-        var rsvps = await _repository.GetAllAsync(cancellationToken);
+        var rsvps = await _repository.GetByEventIdAsync(eventId, cancellationToken);
 
         return rsvps
             .OrderByDescending(r => r.CreatedAt)
@@ -27,4 +27,3 @@ public class GetRsvpsHandler
             });
     }
 }
-

@@ -165,20 +165,34 @@ public class EventsController : ControllerBase
     /// <returns>No content if successful</returns>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DeleteEvent(int id)
     {
+        if (id <= 0)
+        {
+            _logger.LogWarning("DeleteEvent called with invalid ID: {EventId}", id);
+            return BadRequest(new { error = "Event ID must be greater than zero." });
+        }
+
         try
         {
+            _logger.LogInformation("Attempting to delete event with ID: {EventId}", id);
             var deleted = await _deleteEventHandler.HandleAsync(id);
 
             if (!deleted)
             {
+                _logger.LogWarning("Event with ID {EventId} not found for deletion", id);
                 return NotFound(new { error = $"Event with ID {id} not found." });
             }
 
             _logger.LogInformation("Event deleted successfully with ID: {EventId}", id);
             return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument when deleting event with ID {EventId}", id);
+            return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {

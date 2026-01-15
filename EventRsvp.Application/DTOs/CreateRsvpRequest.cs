@@ -8,10 +8,6 @@ public class CreateRsvpRequest
     [StringLength(200, ErrorMessage = "Name cannot exceed 200 characters.")]
     public string Name { get; set; } = string.Empty;
 
-    public bool BringingDish { get; set; }
-
-    public List<string> Dishes { get; set; } = new();
-
-    public bool WhiteElephant { get; set; }
+    public bool WillAttend { get; set; } = true;
 }
 

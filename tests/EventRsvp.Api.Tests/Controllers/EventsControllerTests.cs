@@ -16,13 +16,18 @@ public class EventsControllerTests
 {
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
+    
+    private const int NonExistentEventId = 999;
+    private const int InvalidEventId = 0;
+    private const int NegativeEventId = -1;
+    private const string EventsApiPath = "/api/events";
 
     [SetUp]
     public void SetUp()
     {
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
         
-        var testDbName = $"TestDb_{Guid.NewGuid()}"; // Unique name per test
+        var testDbName = $"TestDb_{Guid.NewGuid()}";
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
@@ -57,8 +62,25 @@ public class EventsControllerTests
     [TearDown]
     public void TearDown()
     {
-        _client.Dispose();
-        _factory.Dispose();
+        _client?.Dispose();
+        _factory?.Dispose();
+    }
+
+    private async Task<EventResponse> CreateTestEventAsync(string title = "Test Event", DateTime? eventDateTime = null)
+    {
+        var request = new CreateEventRequest
+        {
+            Title = title,
+            EventDateTime = eventDateTime ?? DateTime.UtcNow.AddDays(7),
+            Description = "Test Description",
+            Address = "123 Test Street"
+        };
+
+        var response = await _client.PostAsJsonAsync(EventsApiPath, request);
+        response.EnsureSuccessStatusCode();
+        
+        var createdEvent = await response.Content.ReadFromJsonAsync<EventResponse>();
+        return createdEvent!;
     }
 
     [Test]
@@ -74,7 +96,7 @@ public class EventsControllerTests
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/events", request);
+        var response = await _client.PostAsJsonAsync(EventsApiPath, request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -87,32 +109,25 @@ public class EventsControllerTests
     [Test]
     public async Task GetEvent_WhenEventExists_ShouldReturn200Ok()
     {
-        // Arrange - Create a test event first
-        var createRequest = new CreateEventRequest
-        {
-            Title = "Test Event",
-            EventDateTime = DateTime.UtcNow.AddDays(7)
-        };
-        var createResponse = await _client.PostAsJsonAsync("/api/events", createRequest);
-        createResponse.EnsureSuccessStatusCode();
-        var createdEvent = await createResponse.Content.ReadFromJsonAsync<EventResponse>();
+        // Arrange
+        var createdEvent = await CreateTestEventAsync();
 
         // Act
-        var response = await _client.GetAsync($"/api/events/{createdEvent!.Id}");
+        var response = await _client.GetAsync($"{EventsApiPath}/{createdEvent.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<EventResponse>();
         result.Should().NotBeNull();
         result!.Id.Should().Be(createdEvent.Id);
-        result.Title.Should().Be("Test Event");
+        result.Title.Should().Be(createdEvent.Title);
     }
 
     [Test]
     public async Task GetEvent_WhenEventDoesNotExist_ShouldReturn404NotFound()
     {
         // Act
-        var response = await _client.GetAsync("/api/events/999");
+        var response = await _client.GetAsync($"{EventsApiPath}/{NonExistentEventId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -121,24 +136,17 @@ public class EventsControllerTests
     [Test]
     public async Task DeleteEvent_WhenEventExists_ShouldReturn204NoContent()
     {
-        // Arrange - Create a test event first
-        var createRequest = new CreateEventRequest
-        {
-            Title = "Event to Delete",
-            EventDateTime = DateTime.UtcNow.AddDays(7)
-        };
-        var createResponse = await _client.PostAsJsonAsync("/api/events", createRequest);
-        createResponse.EnsureSuccessStatusCode();
-        var createdEvent = await createResponse.Content.ReadFromJsonAsync<EventResponse>();
+        // Arrange
+        var createdEvent = await CreateTestEventAsync("Event to Delete");
 
         // Act
-        var deleteResponse = await _client.DeleteAsync($"/api/events/{createdEvent!.Id}");
+        var deleteResponse = await _client.DeleteAsync($"{EventsApiPath}/{createdEvent.Id}");
 
         // Assert
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // Verify event was actually deleted
-        var getResponse = await _client.GetAsync($"/api/events/{createdEvent.Id}");
+        // Assert
+        var getResponse = await _client.GetAsync($"{EventsApiPath}/{createdEvent.Id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -146,46 +154,50 @@ public class EventsControllerTests
     public async Task DeleteEvent_WhenEventDoesNotExist_ShouldReturn404NotFound()
     {
         // Act
-        var response = await _client.DeleteAsync("/api/events/999");
+        var response = await _client.DeleteAsync($"{EventsApiPath}/{NonExistentEventId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Test]
+    public async Task DeleteEvent_WhenIdIsZero_ShouldReturn400BadRequest()
+    {
+        // Act
+        var response = await _client.DeleteAsync($"{EventsApiPath}/{InvalidEventId}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task DeleteEvent_WhenIdIsNegative_ShouldReturn400BadRequest()
+    {
+        // Act
+        var response = await _client.DeleteAsync($"{EventsApiPath}/{NegativeEventId}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
     public async Task DeleteEvent_WhenDeleted_ShouldNotAppearInGetAll()
     {
-        // Arrange - Create two events
-        var createRequest1 = new CreateEventRequest
-        {
-            Title = "Event 1",
-            EventDateTime = DateTime.UtcNow.AddDays(7)
-        };
-        var createRequest2 = new CreateEventRequest
-        {
-            Title = "Event 2",
-            EventDateTime = DateTime.UtcNow.AddDays(8)
-        };
+        // Arrange
+        var createdEvent1 = await CreateTestEventAsync("Event 1");
+        var createdEvent2 = await CreateTestEventAsync("Event 2");
 
-        var createResponse1 = await _client.PostAsJsonAsync("/api/events", createRequest1);
-        var createResponse2 = await _client.PostAsJsonAsync("/api/events", createRequest2);
-        createResponse1.EnsureSuccessStatusCode();
-        createResponse2.EnsureSuccessStatusCode();
-
-        var createdEvent1 = await createResponse1.Content.ReadFromJsonAsync<EventResponse>();
-        var createdEvent2 = await createResponse2.Content.ReadFromJsonAsync<EventResponse>();
-
-        // Act - Delete one event
-        var deleteResponse = await _client.DeleteAsync($"/api/events/{createdEvent1!.Id}");
+        // Act
+        var deleteResponse = await _client.DeleteAsync($"{EventsApiPath}/{createdEvent1.Id}");
         deleteResponse.EnsureSuccessStatusCode();
 
-        // Assert - Verify deleted event doesn't appear in the list
-        var getAllResponse = await _client.GetAsync("/api/events");
+        // Assert - Verifying deleted event doesn't appear in the list
+        var getAllResponse = await _client.GetAsync(EventsApiPath);
         getAllResponse.EnsureSuccessStatusCode();
         var allEvents = await getAllResponse.Content.ReadFromJsonAsync<List<EventResponse>>();
         
         allEvents.Should().NotBeNull();
         allEvents!.Should().NotContain(e => e.Id == createdEvent1.Id);
-        allEvents.Should().Contain(e => e.Id == createdEvent2!.Id);
+        allEvents.Should().Contain(e => e.Id == createdEvent2.Id);
     }
 }
