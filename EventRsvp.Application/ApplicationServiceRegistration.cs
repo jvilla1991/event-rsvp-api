@@ -15,6 +15,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<CreateEventHandler>();
         services.AddScoped<UpdateEventHandler>();
         services.AddScoped<DeleteEventHandler>();
+        services.AddScoped<LoginHandler>();
 
         return services;
     }
