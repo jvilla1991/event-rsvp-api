@@ -10,6 +10,7 @@ namespace EventRsvp.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[ApiExplorerSettings(GroupName = "Authentication")]
 public class AuthController : ControllerBase
 {
     private readonly LoginHandler _loginHandler;
@@ -22,8 +23,17 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Authenticate admin user and receive JWT token
     /// </summary>
-    /// <param name="request">Login credentials</param>
-    /// <returns>JWT token and user information</returns>
+    /// <remarks>
+    /// Authenticates an admin user with username and password. Returns a JWT token that can be used 
+    /// to access protected endpoints. The token expires after the configured time period (default: 60 minutes).
+    /// 
+    /// Use the returned token in the Authorization header as: "Bearer {token}"
+    /// </remarks>
+    /// <param name="request">Login credentials containing username and password</param>
+    /// <returns>JWT token, username, and expiration information</returns>
+    /// <response code="200">Authentication successful, returns JWT token</response>
+    /// <response code="400">Invalid request data</response>
+    /// <response code="401">Invalid credentials</response>
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

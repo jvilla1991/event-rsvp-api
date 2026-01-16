@@ -1,6 +1,5 @@
 using EventRsvp.Api.Middleware;
 using EventRsvp.Application;
-using EventRsvp.Domain.Exceptions;
 using EventRsvp.Infrastructure;
 using EventRsvp.Infrastructure.Services;
 using FluentValidation;
@@ -8,9 +7,7 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -22,7 +19,76 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssembly(typeof(ApplicationServiceRegistration).Assembly);
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Version = "v1",
+        Title = "Event RSVP API",
+        Description = "A RESTful API for managing events and RSVPs. This API allows you to create, read, update, and delete events, as well as manage RSVPs for those events. Admin endpoints require JWT authentication.",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Name = "Event RSVP API Support",
+            Email = "support@eventrsvp.example.com"
+        },
+        License = new Microsoft.OpenApi.Models.OpenApiLicense
+        {
+            Name = "MIT License"
+        }
+    });
+
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath);
+    }
+
+    var applicationXmlFile = $"{typeof(EventRsvp.Application.DTOs.CreateEventRequest).Assembly.GetName().Name}.xml";
+    var applicationXmlPath = Path.Combine(AppContext.BaseDirectory, applicationXmlFile);
+    if (File.Exists(applicationXmlPath))
+    {
+        options.IncludeXmlComments(applicationXmlPath);
+    }
+
+    // Add JWT Bearer authentication definition
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.\n\nExample: \"Bearer 12345abcdef\""
+    });
+
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+
+    // Group endpoints by tags (using GroupName from ApiExplorerSettings or controller name)
+    options.TagActionsBy(api => 
+    {
+        var groupName = api.GroupName;
+        if (!string.IsNullOrEmpty(groupName))
+        {
+            return new[] { groupName };
+        }
+        return new[] { api.ActionDescriptor.RouteValues["controller"] ?? "Default" };
+    });
+    options.DocInclusionPredicate((name, api) => true);
+});
 
 // Configure JWT Settings using Options Pattern
 builder.Services.Configure<JwtSettings>(
@@ -79,7 +145,6 @@ builder.Services.AddAuthorization(options =>
     });
 });
 
-// Add CORS
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
     ?? new[] { "http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173" };
 
@@ -118,19 +183,25 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Event RSVP API v1");
+        options.RoutePrefix = string.Empty; // Set Swagger UI at the app's root
+        options.DisplayRequestDuration();
+        options.EnableDeepLinking();
+        options.EnableFilter();
+        options.EnableValidator();
+        options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List);
+    });
 }
 
-// CORS must be very early in the pipeline, before exception handling and HTTPS redirection
 app.UseCors("AllowFrontend");
 
-// Only use HTTPS redirection in production
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
 
-// Global exception handling middleware (must be before UseAuthentication/UseAuthorization)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();
@@ -138,7 +209,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Health check endpoints
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     Predicate = _ => true,
@@ -191,5 +261,4 @@ if (!app.Environment.IsEnvironment("Testing"))
 
 app.Run();
 
-// Make Program class accessible for testing
 public partial class Program { }
