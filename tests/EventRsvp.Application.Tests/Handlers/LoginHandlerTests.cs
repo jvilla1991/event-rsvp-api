@@ -214,6 +214,6 @@ public class LoginHandlerTests
 
         // Assert
         result.ExpiresAt.Should().BeAfter(DateTime.UtcNow.AddMinutes(expectedExpirationMinutes - 1));
-        result.ExpiresAt.Should().BeBefore(DateTime.UtcNow.AddMinutes(expectedExpirationMinutes + 1));
+        result.ExpiresAt.Should().BeBefore(DateTime.UtcNow.AddMinutes(expectedExpirationMinutes + 1)); 
     }
 }
