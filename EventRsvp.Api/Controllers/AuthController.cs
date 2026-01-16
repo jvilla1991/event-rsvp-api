@@ -1,3 +1,4 @@
+using EventRsvp.Api.Helpers;
 using EventRsvp.Application.DTOs;
 using EventRsvp.Application.Handlers;
 using Microsoft.AspNetCore.Mvc;
@@ -12,12 +13,10 @@ namespace EventRsvp.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly LoginHandler _loginHandler;
-    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(LoginHandler loginHandler, ILogger<AuthController> logger)
+    public AuthController(LoginHandler loginHandler)
     {
         _loginHandler = loginHandler ?? throw new ArgumentNullException(nameof(loginHandler));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -33,36 +32,20 @@ public class AuthController : ControllerBase
     {
         if (request == null)
         {
-            _logger.LogWarning("Login attempted with null request");
-            return BadRequest(new { error = "Request body is required." });
-        }
-
-        if (!ModelState.IsValid)
-        {
-            var errors = ModelState
-                .Where(x => x.Value?.Errors.Count > 0)
-                .SelectMany(x => x.Value!.Errors.Select(e => e.ErrorMessage))
-                .ToList();
-            
-            _logger.LogWarning("Login validation failed: {Errors}", string.Join(", ", errors));
-            return BadRequest(new { error = "Validation failed.", errors = errors });
+            return ErrorResponseHelper.BadRequestResponse("Request body is required.");
         }
 
         try
         {
-            _logger.LogInformation("Login attempt for username: {Username}", request.Username);
             var response = await _loginHandler.HandleAsync(request);
-            _logger.LogInformation("Login successful for username: {Username}", request.Username);
-            return Ok(response);
+            return Ok(response); 
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning("Login failed for username: {Username}", request.Username);
-            return Unauthorized(new { error = ex.Message });
+            return ErrorResponseHelper.UnauthorizedResponse(ex.Message);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Unexpected error during login for username: {Username}", request.Username);
             throw;
         }
     }

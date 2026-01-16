@@ -1,13 +1,18 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace EventRsvp.Application.DTOs;
 
+/// <summary>
+/// Request DTO for creating a new RSVP
+/// </summary>
 public class CreateRsvpRequest
 {
-    [Required(ErrorMessage = "Name is required.")]
-    [StringLength(200, ErrorMessage = "Name cannot exceed 200 characters.")]
+    /// <summary>
+    /// The name of the person RSVPing (required, max 200 characters)
+    /// </summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Whether the person will attend the event (default: true)
+    /// </summary>
     public bool WillAttend { get; set; } = true;
 }
 

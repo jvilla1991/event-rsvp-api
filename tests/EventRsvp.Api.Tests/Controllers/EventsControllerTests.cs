@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using EventRsvp.Infrastructure.Data;
-using System.IO;
 
 namespace EventRsvp.Api.Tests.Controllers;
 
@@ -70,7 +69,7 @@ public class EventsControllerTests
     private async Task<EventResponse> CreateTestEventAsync(string title = "Test Event", DateTime? eventDateTime = null)
     {
         var token = await GetAdminTokenAsync();
-        var authenticatedClient = CreateAuthenticatedClient(token);
+        using var authenticatedClient = CreateAuthenticatedClient(token);
         var request = new CreateEventRequest
         {
             Title = title,
@@ -78,11 +77,11 @@ public class EventsControllerTests
             Description = "Test Description",
             Address = "123 Test Street"
         };
+
         var response = await authenticatedClient.PostAsJsonAsync(EventsApiPath, request);
         response.EnsureSuccessStatusCode();
         
         var createdEvent = await response.Content.ReadFromJsonAsync<EventResponse>();
-
         return createdEvent!;
     }
 
