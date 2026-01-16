@@ -11,6 +11,7 @@ namespace EventRsvp.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[ApiExplorerSettings(GroupName = "Events")]
 public class EventsController : ControllerBase
 {
     private readonly GetEventsHandler _getEventsHandler;
@@ -36,7 +37,8 @@ public class EventsController : ControllerBase
     /// <summary>
     /// Get all events
     /// </summary>
-    /// <returns>List of all events</returns>
+    /// <returns>Returns a list of all events in the system</returns>
+    /// <response code="200">Returns the list of events</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<EventResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<EventResponse>>> GetEvents()
@@ -55,8 +57,10 @@ public class EventsController : ControllerBase
     /// <summary>
     /// Get event by ID
     /// </summary>
-    /// <param name="id">Event ID</param>
+    /// <param name="id">The unique identifier of the event</param>
     /// <returns>Event details</returns>
+    /// <response code="200">Returns the event with the specified ID</response>
+    /// <response code="404">Event not found</response>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(EventResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -82,8 +86,14 @@ public class EventsController : ControllerBase
     /// <summary>
     /// Create a new event
     /// </summary>
-    /// <param name="request">Event creation data</param>
-    /// <returns>Created event</returns>
+    /// <remarks>
+    /// Requires admin authentication. Creates a new event with the provided details.
+    /// </remarks>
+    /// <param name="request">Event creation data including title, description, date/time, and address</param>
+    /// <returns>The newly created event with assigned ID</returns>
+    /// <response code="201">Event created successfully</response>
+    /// <response code="400">Invalid request data</response>
+    /// <response code="401">Unauthorized - Admin authentication required</response>
     [HttpPost]
     [Authorize(Policy = "Admin")]
     [ProducesResponseType(typeof(EventResponse), StatusCodes.Status201Created)]
@@ -110,9 +120,16 @@ public class EventsController : ControllerBase
     /// <summary>
     /// Update an existing event
     /// </summary>
-    /// <param name="id">Event ID</param>
+    /// <remarks>
+    /// Requires admin authentication. Updates the event with the specified ID.
+    /// </remarks>
+    /// <param name="id">The unique identifier of the event to update</param>
     /// <param name="request">Event update data</param>
-    /// <returns>Updated event</returns>
+    /// <returns>The updated event</returns>
+    /// <response code="200">Event updated successfully</response>
+    /// <response code="400">Invalid request data</response>
+    /// <response code="404">Event not found</response>
+    /// <response code="401">Unauthorized - Admin authentication required</response>
     [HttpPut("{id}")]
     [Authorize(Policy = "Admin")]
     [ProducesResponseType(typeof(EventResponse), StatusCodes.Status200OK)]
@@ -144,10 +161,18 @@ public class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Delete an event. This will also delete all associated RSVPs.
+    /// Delete an event
     /// </summary>
-    /// <param name="id">Event ID</param>
+    /// <remarks>
+    /// Requires admin authentication. Deletes the event with the specified ID. 
+    /// This operation will also delete all associated RSVPs due to cascade delete behavior.
+    /// </remarks>
+    /// <param name="id">The unique identifier of the event to delete</param>
     /// <returns>No content if successful</returns>
+    /// <response code="204">Event deleted successfully</response>
+    /// <response code="400">Invalid event ID</response>
+    /// <response code="404">Event not found</response>
+    /// <response code="401">Unauthorized - Admin authentication required</response>
     [HttpDelete("{id}")]
     [Authorize(Policy = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

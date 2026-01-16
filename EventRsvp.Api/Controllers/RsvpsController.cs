@@ -5,8 +5,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EventRsvp.Api.Controllers;
 
+/// <summary>
+/// Controller for managing RSVPs for events
+/// </summary>
 [ApiController]
 [Route("api/events/{eventId}/rsvps")]
+[ApiExplorerSettings(GroupName = "RSVPs")]
 public class RsvpsController : ControllerBase
 {
     private readonly CreateRsvpHandler _createRsvpHandler;
@@ -23,9 +27,15 @@ public class RsvpsController : ControllerBase
     /// <summary>
     /// Creates a new RSVP for the specified event
     /// </summary>
-    /// <param name="eventId">The ID of the event</param>
-    /// <param name="request">The RSVP request data</param>
-    /// <returns>The created RSVP</returns>
+    /// <remarks>
+    /// Creates a new RSVP (Response to Invitation) for the specified event. 
+    /// The RSVP includes the attendee's name and whether they will attend.
+    /// </remarks>
+    /// <param name="eventId">The unique identifier of the event</param>
+    /// <param name="request">The RSVP request data containing name and attendance status</param>
+    /// <returns>The created RSVP with assigned ID</returns>
+    /// <response code="201">RSVP created successfully</response>
+    /// <response code="400">Invalid request data or event not found</response>
     [HttpPost]
     [ProducesResponseType(typeof(RsvpResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -58,8 +68,13 @@ public class RsvpsController : ControllerBase
     /// <summary>
     /// Gets all RSVPs for the specified event
     /// </summary>
-    /// <param name="eventId">The ID of the event</param>
-    /// <returns>List of RSVPs for the event</returns>
+    /// <remarks>
+    /// Retrieves all RSVPs (Responses to Invitations) for a specific event. 
+    /// Returns an empty list if the event has no RSVPs or if the event doesn't exist.
+    /// </remarks>
+    /// <param name="eventId">The unique identifier of the event</param>
+    /// <returns>List of RSVPs for the specified event</returns>
+    /// <response code="200">Returns the list of RSVPs for the event</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<RsvpResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<RsvpResponse>>> GetRsvps(int eventId)
