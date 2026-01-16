@@ -34,4 +34,14 @@ public class RsvpRepository : IRsvpRepository
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task DeleteByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
+    {
+        var rsvps = await _context.Rsvps
+            .Where(r => r.EventId == eventId)
+            .ToListAsync(cancellationToken);
+        
+        _context.Rsvps.RemoveRange(rsvps);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }
