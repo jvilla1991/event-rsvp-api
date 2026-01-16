@@ -1,18 +1,27 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace EventRsvp.Application.DTOs;
 
+/// <summary>
+/// Request DTO for updating an existing event
+/// </summary>
 public class UpdateEventRequest
 {
-    [Required(ErrorMessage = "Title is required.")]
-    [StringLength(200, ErrorMessage = "Title cannot exceed 200 characters.")]
+    /// <summary>
+    /// The title of the event (required, max 200 characters)
+    /// </summary>
     public string Title { get; set; } = string.Empty;
 
-    [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters.")]
+    /// <summary>
+    /// Optional description of the event (max 1000 characters)
+    /// </summary>
     public string? Description { get; set; }
 
+    /// <summary>
+    /// Optional date and time of the event
+    /// </summary>
     public DateTime? EventDateTime { get; set; }
 
-    [StringLength(500, ErrorMessage = "Address cannot exceed 500 characters.")]
+    /// <summary>
+    /// Optional address where the event will take place (max 500 characters)
+    /// </summary>
     public string? Address { get; set; }
 }
