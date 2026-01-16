@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using EventRsvp.Infrastructure.Data;
+using System.IO;
 
 namespace EventRsvp.Api.Tests.Controllers;
 
@@ -68,6 +69,8 @@ public class EventsControllerTests
 
     private async Task<EventResponse> CreateTestEventAsync(string title = "Test Event", DateTime? eventDateTime = null)
     {
+        var token = await GetAdminTokenAsync();
+        var authenticatedClient = CreateAuthenticatedClient(token);
         var request = new CreateEventRequest
         {
             Title = title,
@@ -75,16 +78,66 @@ public class EventsControllerTests
             Description = "Test Description",
             Address = "123 Test Street"
         };
-
-        var response = await _client.PostAsJsonAsync(EventsApiPath, request);
+        var response = await authenticatedClient.PostAsJsonAsync(EventsApiPath, request);
         response.EnsureSuccessStatusCode();
         
         var createdEvent = await response.Content.ReadFromJsonAsync<EventResponse>();
+
         return createdEvent!;
     }
 
+    private async Task<string> GetAdminTokenAsync()
+    {
+        var loginRequest = new LoginRequest
+        {
+            Username = "admin",
+            Password = "admin123"
+        };
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        loginResponse.EnsureSuccessStatusCode();
+        
+        var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        return loginResult!.Token;
+    }
+
+    private HttpClient CreateAuthenticatedClient(string token)
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        return client;
+    }
+
     [Test]
-    public async Task CreateEvent_WhenValidRequest_ShouldReturn201Created()
+    public async Task CreateEvent_WhenValidRequestAndAuthenticated_ShouldReturn201Created()
+    {
+        // Arrange
+        var token = await GetAdminTokenAsync();
+        var authenticatedClient = CreateAuthenticatedClient(token);
+        
+        var request = new CreateEventRequest
+        {
+            Title = "Test Event",
+            Description = "Test Description",
+            EventDateTime = DateTime.UtcNow.AddDays(7),
+            Address = "123 Test Street"
+        };
+
+        // Act
+        var response = await authenticatedClient.PostAsJsonAsync(EventsApiPath, request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<EventResponse>();
+        result.Should().NotBeNull();
+        result!.Title.Should().Be("Test Event");
+        result.Id.Should().BeGreaterThan(0);
+        
+        authenticatedClient.Dispose();
+    }
+
+    [Test]
+    public async Task CreateEvent_WhenUnauthenticated_ShouldReturn401Unauthorized()
     {
         // Arrange
         var request = new CreateEventRequest
@@ -99,11 +152,7 @@ public class EventsControllerTests
         var response = await _client.PostAsJsonAsync(EventsApiPath, request);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var result = await response.Content.ReadFromJsonAsync<EventResponse>();
-        result.Should().NotBeNull();
-        result!.Title.Should().Be("Test Event");
-        result.Id.Should().BeGreaterThan(0);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Test]
@@ -134,61 +183,86 @@ public class EventsControllerTests
     }
 
     [Test]
-    public async Task DeleteEvent_WhenEventExists_ShouldReturn204NoContent()
+    public async Task DeleteEvent_WhenEventExistsAndAuthenticated_ShouldReturn204NoContent()
     {
         // Arrange
+        var token = await GetAdminTokenAsync();
+        var authenticatedClient = CreateAuthenticatedClient(token);
         var createdEvent = await CreateTestEventAsync("Event to Delete");
 
         // Act
-        var deleteResponse = await _client.DeleteAsync($"{EventsApiPath}/{createdEvent.Id}");
+        var deleteResponse = await authenticatedClient.DeleteAsync($"{EventsApiPath}/{createdEvent.Id}");
 
         // Assert
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // Assert
+        // Verify event was deleted
         var getResponse = await _client.GetAsync($"{EventsApiPath}/{createdEvent.Id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        
+        authenticatedClient.Dispose();
     }
 
     [Test]
-    public async Task DeleteEvent_WhenEventDoesNotExist_ShouldReturn404NotFound()
+    public async Task DeleteEvent_WhenEventDoesNotExistAndAuthenticated_ShouldReturn404NotFound()
     {
+        // Arrange
+        var token = await GetAdminTokenAsync();
+        var authenticatedClient = CreateAuthenticatedClient(token);
+
         // Act
-        var response = await _client.DeleteAsync($"{EventsApiPath}/{NonExistentEventId}");
+        var response = await authenticatedClient.DeleteAsync($"{EventsApiPath}/{NonExistentEventId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        
+        authenticatedClient.Dispose();
     }
 
     [Test]
-    public async Task DeleteEvent_WhenIdIsZero_ShouldReturn400BadRequest()
+    public async Task DeleteEvent_WhenIdIsZeroAndAuthenticated_ShouldReturn400BadRequest()
     {
+        // Arrange
+        var token = await GetAdminTokenAsync();
+        var authenticatedClient = CreateAuthenticatedClient(token);
+
         // Act
-        var response = await _client.DeleteAsync($"{EventsApiPath}/{InvalidEventId}");
+        var response = await authenticatedClient.DeleteAsync($"{EventsApiPath}/{InvalidEventId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        
+        authenticatedClient.Dispose();
     }
 
     [Test]
-    public async Task DeleteEvent_WhenIdIsNegative_ShouldReturn400BadRequest()
+    public async Task DeleteEvent_WhenIdIsNegativeAndAuthenticated_ShouldReturn400BadRequest()
     {
+        // Arrange
+        var token = await GetAdminTokenAsync();
+        var authenticatedClient = CreateAuthenticatedClient(token);
+
         // Act
-        var response = await _client.DeleteAsync($"{EventsApiPath}/{NegativeEventId}");
+        var response = await authenticatedClient.DeleteAsync($"{EventsApiPath}/{NegativeEventId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        
+        authenticatedClient.Dispose();
     }
 
     [Test]
     public async Task DeleteEvent_WhenDeleted_ShouldNotAppearInGetAll()
     {
         // Arrange
+        var token = await GetAdminTokenAsync();
+        var authenticatedClient = CreateAuthenticatedClient(token);
+        
         var createdEvent1 = await CreateTestEventAsync("Event 1");
         var createdEvent2 = await CreateTestEventAsync("Event 2");
 
         // Act
-        var deleteResponse = await _client.DeleteAsync($"{EventsApiPath}/{createdEvent1.Id}");
+        var deleteResponse = await authenticatedClient.DeleteAsync($"{EventsApiPath}/{createdEvent1.Id}");
         deleteResponse.EnsureSuccessStatusCode();
 
         // Assert - Verifying deleted event doesn't appear in the list
@@ -199,5 +273,118 @@ public class EventsControllerTests
         allEvents.Should().NotBeNull();
         allEvents!.Should().NotContain(e => e.Id == createdEvent1.Id);
         allEvents.Should().Contain(e => e.Id == createdEvent2.Id);
+        
+        authenticatedClient.Dispose();
+    }
+
+    [Test]
+    public async Task UpdateEvent_WhenUnauthenticated_ShouldReturn401Unauthorized()
+    {
+        // Arrange
+        var token = await GetAdminTokenAsync();
+        var authenticatedClient = CreateAuthenticatedClient(token);
+        var createdEvent = await CreateTestEventAsync("Original Title");
+        
+        var updateRequest = new UpdateEventRequest
+        {
+            Title = "Updated Title",
+            Description = "Updated Description"
+        };
+
+        // Act - Try to update without authentication
+        var response = await _client.PutAsJsonAsync($"{EventsApiPath}/{createdEvent.Id}", updateRequest);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        
+        authenticatedClient.Dispose();
+    }
+
+    [Test]
+    public async Task UpdateEvent_WhenAuthenticated_ShouldReturn200Ok()
+    {
+        // Arrange
+        var token = await GetAdminTokenAsync();
+        var authenticatedClient = CreateAuthenticatedClient(token);
+        var createdEvent = await CreateTestEventAsync("Original Title");
+        
+        var updateRequest = new UpdateEventRequest
+        {
+            Title = "Updated Title",
+            Description = "Updated Description",
+            EventDateTime = DateTime.UtcNow.AddDays(14),
+            Address = "456 Updated Street"
+        };
+
+        // Act
+        var response = await authenticatedClient.PutAsJsonAsync($"{EventsApiPath}/{createdEvent.Id}", updateRequest);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<EventResponse>();
+        result.Should().NotBeNull();
+        result!.Title.Should().Be("Updated Title");
+        result.Description.Should().Be("Updated Description");
+        result.Address.Should().Be("456 Updated Street");
+        
+        authenticatedClient.Dispose();
+    }
+
+    [Test]
+    public async Task DeleteEvent_WhenUnauthenticated_ShouldReturn401Unauthorized()
+    {
+        // Arrange
+        var token = await GetAdminTokenAsync();
+        var authenticatedClient = CreateAuthenticatedClient(token);
+        var createdEvent = await CreateTestEventAsync("Event to Delete");
+
+        // Act - Try to delete without authentication
+        var response = await _client.DeleteAsync($"{EventsApiPath}/{createdEvent.Id}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        
+        authenticatedClient.Dispose();
+    }
+
+    [Test]
+    public async Task DeleteEvent_WhenAuthenticated_ShouldReturn204NoContent()
+    {
+        // Arrange
+        var token = await GetAdminTokenAsync();
+        var authenticatedClient = CreateAuthenticatedClient(token);
+        var createdEvent = await CreateTestEventAsync("Event to Delete");
+
+        // Act
+        var deleteResponse = await authenticatedClient.DeleteAsync($"{EventsApiPath}/{createdEvent.Id}");
+
+        // Assert
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        
+        authenticatedClient.Dispose();
+    }
+
+    [Test]
+    public async Task CreateEvent_WhenInvalidToken_ShouldReturn401Unauthorized()
+    {
+        // Arrange
+        var invalidToken = "invalid.jwt.token";
+        var authenticatedClient = CreateAuthenticatedClient(invalidToken);
+        
+        var request = new CreateEventRequest
+        {
+            Title = "Test Event",
+            Description = "Test Description",
+            EventDateTime = DateTime.UtcNow.AddDays(7),
+            Address = "123 Test Street"
+        };
+
+        // Act
+        var response = await authenticatedClient.PostAsJsonAsync(EventsApiPath, request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        
+        authenticatedClient.Dispose();
     }
 }

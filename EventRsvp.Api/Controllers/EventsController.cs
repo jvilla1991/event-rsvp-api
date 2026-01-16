@@ -1,5 +1,6 @@
 using EventRsvp.Application.DTOs;
 using EventRsvp.Application.Handlers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventRsvp.Api.Controllers;
@@ -88,8 +89,10 @@ public class EventsController : ControllerBase
     /// <param name="request">Event creation data</param>
     /// <returns>Created event</returns>
     [HttpPost]
+    [Authorize(Policy = "Admin")]
     [ProducesResponseType(typeof(EventResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<EventResponse>> CreateEvent([FromBody] CreateEventRequest request)
     {
         if (request == null)
@@ -126,9 +129,11 @@ public class EventsController : ControllerBase
     /// <param name="request">Event update data</param>
     /// <returns>Updated event</returns>
     [HttpPut("{id}")]
+    [Authorize(Policy = "Admin")]
     [ProducesResponseType(typeof(EventResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<EventResponse>> UpdateEvent(int id, [FromBody] UpdateEventRequest request)
     {
         if (!ModelState.IsValid)
@@ -155,14 +160,16 @@ public class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Delete an event
+    /// Delete an event. This will also delete all associated RSVPs.
     /// </summary>
     /// <param name="id">Event ID</param>
     /// <returns>No content if successful</returns>
     [HttpDelete("{id}")]
+    [Authorize(Policy = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult> DeleteEvent(int id)
     {
         if (id <= 0)
