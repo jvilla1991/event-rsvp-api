@@ -34,15 +34,8 @@ public class LoginHandler
             throw new ArgumentNullException(nameof(request));
         }
 
-        if (string.IsNullOrWhiteSpace(request.Username))
-        {
-            throw new UnauthorizedAccessException("Invalid credentials.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Password))
-        {
-            throw new UnauthorizedAccessException("Invalid credentials.");
-        }
+        // Note: Username and password validation is handled by FluentValidation
+        // before this handler is called. This handler focuses on credential verification.
 
         var adminUsername = _configuration["Admin:Username"];
         var adminPassword = _configuration["Admin:Password"];

@@ -1,3 +1,4 @@
+using EventRsvp.Api.Helpers;
 using EventRsvp.Application.DTOs;
 using EventRsvp.Application.Handlers;
 using Microsoft.AspNetCore.Authorization;
@@ -17,22 +18,19 @@ public class EventsController : ControllerBase
     private readonly CreateEventHandler _createEventHandler;
     private readonly UpdateEventHandler _updateEventHandler;
     private readonly DeleteEventHandler _deleteEventHandler;
-    private readonly ILogger<EventsController> _logger;
 
     public EventsController(
         GetEventsHandler getEventsHandler,
         GetEventHandler getEventHandler,
         CreateEventHandler createEventHandler,
         UpdateEventHandler updateEventHandler,
-        DeleteEventHandler deleteEventHandler,
-        ILogger<EventsController> logger)
+        DeleteEventHandler deleteEventHandler)
     {
         _getEventsHandler = getEventsHandler;
         _getEventHandler = getEventHandler;
         _createEventHandler = createEventHandler;
         _updateEventHandler = updateEventHandler;
         _deleteEventHandler = deleteEventHandler;
-        _logger = logger;
     }
 
     /// <summary>
@@ -48,9 +46,8 @@ public class EventsController : ControllerBase
             var events = await _getEventsHandler.HandleAsync();
             return Ok(events);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error retrieving events");
             throw;
         }
     }
@@ -71,14 +68,13 @@ public class EventsController : ControllerBase
 
             if (eventResponse == null)
             {
-                return NotFound(new { error = $"Event with ID {id} not found." });
+                return ErrorResponseHelper.NotFoundResponse($"Event with ID {id} not found.");
             }
 
             return Ok(eventResponse);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error retrieving event with ID {EventId}", id);
             throw;
         }
     }
@@ -97,17 +93,7 @@ public class EventsController : ControllerBase
     {
         if (request == null)
         {
-            return BadRequest(new { error = "Request body is required." });
-        }
-
-        if (!ModelState.IsValid)
-        {
-            var errors = ModelState
-                .Where(x => x.Value?.Errors.Count > 0)
-                .SelectMany(x => x.Value!.Errors.Select(e => e.ErrorMessage))
-                .ToList();
-            
-            return BadRequest(new { error = "Validation failed.", errors = errors });
+            return ErrorResponseHelper.BadRequestResponse("Request body is required.");
         }
 
         try
@@ -115,9 +101,8 @@ public class EventsController : ControllerBase
             var response = await _createEventHandler.HandleAsync(request);
             return CreatedAtAction(nameof(GetEvent), new { id = response.Id }, response);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error creating event: {Message}", ex.Message);
             throw;
         }
     }
@@ -136,9 +121,9 @@ public class EventsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<EventResponse>> UpdateEvent(int id, [FromBody] UpdateEventRequest request)
     {
-        if (!ModelState.IsValid)
+        if (request == null)
         {
-            return BadRequest(ModelState);
+            return ErrorResponseHelper.BadRequestResponse("Request body is required.");
         }
 
         try
@@ -147,14 +132,13 @@ public class EventsController : ControllerBase
 
             if (response == null)
             {
-                return NotFound(new { error = $"Event with ID {id} not found." });
+                return ErrorResponseHelper.NotFoundResponse($"Event with ID {id} not found.");
             }
 
             return Ok(response);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error updating event with ID {EventId}", id);
             throw;
         }
     }
@@ -174,7 +158,7 @@ public class EventsController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest(new { error = "Event ID must be greater than zero." });
+            return ErrorResponseHelper.BadRequestResponse("Event ID must be greater than zero.");
         }
 
         try
@@ -183,19 +167,17 @@ public class EventsController : ControllerBase
 
             if (!deleted)
             {
-                return NotFound(new { error = $"Event with ID {id} not found." });
+                return ErrorResponseHelper.NotFoundResponse($"Event with ID {id} not found.");
             }
 
             return NoContent();
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid argument when deleting event with ID {EventId}", id);
-            return BadRequest(new { error = ex.Message });
+            return ErrorResponseHelper.BadRequestResponse(ex.Message);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error deleting event with ID {EventId}", id);
             throw;
         }
     }

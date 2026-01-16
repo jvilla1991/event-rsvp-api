@@ -1,3 +1,4 @@
+using EventRsvp.Api.Helpers;
 using EventRsvp.Application.DTOs;
 using EventRsvp.Application.Handlers;
 using Microsoft.AspNetCore.Mvc;
@@ -10,16 +11,13 @@ public class RsvpsController : ControllerBase
 {
     private readonly CreateRsvpHandler _createRsvpHandler;
     private readonly GetRsvpsByEventIdHandler _getRsvpsByEventIdHandler;
-    private readonly ILogger<RsvpsController> _logger;
 
     public RsvpsController(
         CreateRsvpHandler createRsvpHandler,
-        GetRsvpsByEventIdHandler getRsvpsByEventIdHandler,
-        ILogger<RsvpsController> logger)
+        GetRsvpsByEventIdHandler getRsvpsByEventIdHandler)
     {
         _createRsvpHandler = createRsvpHandler;
         _getRsvpsByEventIdHandler = getRsvpsByEventIdHandler;
-        _logger = logger;
     }
 
     /// <summary>
@@ -33,9 +31,9 @@ public class RsvpsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<RsvpResponse>> CreateRsvp(int eventId, [FromBody] CreateRsvpRequest request)
     {
-        if (!ModelState.IsValid)
+        if (request == null)
         {
-            return BadRequest(ModelState);
+            return ErrorResponseHelper.BadRequestResponse("Request body is required.");
         }
 
         try
@@ -45,16 +43,14 @@ public class RsvpsController : ControllerBase
         }
         catch (Domain.Exceptions.InvalidRsvpException ex)
         {
-            _logger.LogWarning(ex, "Invalid RSVP creation attempt for event {EventId}", eventId);
             if (ex.Message.Contains("not found"))
             {
-                return NotFound(new { message = ex.Message });
+                return ErrorResponseHelper.NotFoundResponse(ex.Message);
             }
-            return BadRequest(new { message = ex.Message });
+            return ErrorResponseHelper.BadRequestResponse(ex.Message);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error creating RSVP for event {EventId}", eventId);
             throw;
         }
     }
@@ -73,9 +69,8 @@ public class RsvpsController : ControllerBase
             var rsvps = await _getRsvpsByEventIdHandler.HandleAsync(eventId);
             return Ok(rsvps);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error retrieving RSVPs for event {EventId}", eventId);
             throw;
         }
     }

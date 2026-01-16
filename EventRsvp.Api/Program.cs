@@ -1,7 +1,10 @@
+using EventRsvp.Api.Middleware;
 using EventRsvp.Application;
 using EventRsvp.Domain.Exceptions;
 using EventRsvp.Infrastructure;
 using EventRsvp.Infrastructure.Services;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +18,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddValidatorsFromAssembly(typeof(ApplicationServiceRegistration).Assembly);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -124,37 +130,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-// Global exception handling middleware
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
-    {
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-        context.Response.ContentType = "application/json";
-
-        var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
-
-        if (exception is InvalidRsvpException invalidRsvpException)
-        {
-            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = invalidRsvpException.Message }));
-        }
-        else if (exception is InvalidEventException invalidEventException)
-        {
-            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = invalidEventException.Message }));
-        }
-        else if (exception is DomainException domainException)
-        {
-            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = domainException.Message }));
-        }
-        else
-        {
-            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = "An error occurred while processing your request." }));
-        }
-    });
-});
+// Global exception handling middleware (must be before UseAuthentication/UseAuthorization)
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
