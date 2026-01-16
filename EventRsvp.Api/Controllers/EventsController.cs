@@ -94,7 +94,6 @@ public class EventsController : ControllerBase
     {
         if (request == null)
         {
-            _logger.LogWarning("CreateEvent called with null request");
             return BadRequest(new { error = "Request body is required." });
         }
 
@@ -105,15 +104,12 @@ public class EventsController : ControllerBase
                 .SelectMany(x => x.Value!.Errors.Select(e => e.ErrorMessage))
                 .ToList();
             
-            _logger.LogWarning("CreateEvent validation failed: {Errors}", string.Join(", ", errors));
             return BadRequest(new { error = "Validation failed.", errors = errors });
         }
 
         try
         {
-            _logger.LogInformation("Creating event with title: {Title}", request.Title);
             var response = await _createEventHandler.HandleAsync(request);
-            _logger.LogInformation("Event created successfully with ID: {EventId}", response.Id);
             return CreatedAtAction(nameof(GetEvent), new { id = response.Id }, response);
         }
         catch (Exception ex)
@@ -171,22 +167,18 @@ public class EventsController : ControllerBase
     {
         if (id <= 0)
         {
-            _logger.LogWarning("DeleteEvent called with invalid ID: {EventId}", id);
             return BadRequest(new { error = "Event ID must be greater than zero." });
         }
 
         try
         {
-            _logger.LogInformation("Attempting to delete event with ID: {EventId}", id);
             var deleted = await _deleteEventHandler.HandleAsync(id);
 
             if (!deleted)
             {
-                _logger.LogWarning("Event with ID {EventId} not found for deletion", id);
                 return NotFound(new { error = $"Event with ID {id} not found." });
             }
 
-            _logger.LogInformation("Event deleted successfully with ID: {EventId}", id);
             return NoContent();
         }
         catch (ArgumentException ex)
