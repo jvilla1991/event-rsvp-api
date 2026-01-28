@@ -17,6 +17,12 @@ public static class ApplicationServiceRegistration
         services.AddScoped<UpdateEventHandler>();
         services.AddScoped<DeleteEventHandler>();
         services.AddScoped<LoginHandler>();
+        services.AddScoped<GetPollsByEventIdHandler>();
+        services.AddScoped<CreatePollHandler>();
+        services.AddScoped<UpdatePollHandler>();
+        services.AddScoped<DeletePollHandler>();
+        services.AddScoped<SubmitPollVoteHandler>();
+        services.AddScoped<GetPollResultsHandler>();
         services.AddValidatorsFromAssembly(typeof(ApplicationServiceRegistration).Assembly);
 
         return services;

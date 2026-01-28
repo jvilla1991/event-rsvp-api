@@ -13,6 +13,7 @@ public class DeleteEventHandlerTests
 {
     private Mock<IEventRepository> _eventRepositoryMock = null!;
     private Mock<IRsvpRepository> _rsvpRepositoryMock = null!;
+    private Mock<IPollRepository> _pollRepositoryMock = null!;
     private DeleteEventHandler _handler = null!;
     private const int ValidEventId = 1;
     private const int NonExistentEventId = 999;
@@ -22,6 +23,7 @@ public class DeleteEventHandlerTests
     {
         _eventRepositoryMock = new Mock<IEventRepository>();
         _rsvpRepositoryMock = new Mock<IRsvpRepository>();
+        _pollRepositoryMock = new Mock<IPollRepository>();
         
         // Setup default: event exists, no RSVPs
         _eventRepositoryMock
@@ -32,11 +34,15 @@ public class DeleteEventHandlerTests
             .Setup(r => r.GetByEventIdAsync(ValidEventId, It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult<IEnumerable<Rsvp>>(Enumerable.Empty<Rsvp>()));
         
+        _pollRepositoryMock
+            .Setup(r => r.DeleteByEventIdAsync(ValidEventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        
         _eventRepositoryMock
             .Setup(r => r.DeleteAsync(ValidEventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         
-        _handler = new DeleteEventHandler(_eventRepositoryMock.Object, _rsvpRepositoryMock.Object);
+        _handler = new DeleteEventHandler(_eventRepositoryMock.Object, _rsvpRepositoryMock.Object, _pollRepositoryMock.Object);
     }
 
     [Test]
@@ -54,6 +60,7 @@ public class DeleteEventHandlerTests
         result.Should().BeTrue();
         _eventRepositoryMock.Verify(r => r.GetByIdAsync(ValidEventId, It.IsAny<CancellationToken>()), Times.Once);
         _rsvpRepositoryMock.Verify(r => r.DeleteByEventIdAsync(ValidEventId, It.IsAny<CancellationToken>()), Times.Once);
+        _pollRepositoryMock.Verify(r => r.DeleteByEventIdAsync(ValidEventId, It.IsAny<CancellationToken>()), Times.Once);
         _eventRepositoryMock.Verify(r => r.DeleteAsync(ValidEventId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -88,6 +95,10 @@ public class DeleteEventHandlerTests
             .Setup(r => r.DeleteByEventIdAsync(ValidEventId, cancellationToken))
             .Returns(Task.CompletedTask);
         
+        _pollRepositoryMock
+            .Setup(r => r.DeleteByEventIdAsync(ValidEventId, cancellationToken))
+            .ReturnsAsync(true);
+        
         _eventRepositoryMock
             .Setup(r => r.DeleteAsync(ValidEventId, cancellationToken))
             .ReturnsAsync(true);
@@ -98,6 +109,7 @@ public class DeleteEventHandlerTests
         // Assert
         result.Should().BeTrue();
         _rsvpRepositoryMock.Verify(r => r.DeleteByEventIdAsync(ValidEventId, cancellationToken), Times.Once);
+        _pollRepositoryMock.Verify(r => r.DeleteByEventIdAsync(ValidEventId, cancellationToken), Times.Once);
         _eventRepositoryMock.Verify(r => r.DeleteAsync(ValidEventId, cancellationToken), Times.Once);
     }
 
@@ -119,6 +131,10 @@ public class DeleteEventHandlerTests
             .Setup(r => r.DeleteByEventIdAsync(ValidEventId, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         
+        _pollRepositoryMock
+            .Setup(r => r.DeleteByEventIdAsync(ValidEventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        
         _eventRepositoryMock
             .Setup(r => r.DeleteAsync(ValidEventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -129,6 +145,7 @@ public class DeleteEventHandlerTests
         // Assert
         result.Should().BeTrue();
         _rsvpRepositoryMock.Verify(r => r.DeleteByEventIdAsync(ValidEventId, It.IsAny<CancellationToken>()), Times.Once);
+        _pollRepositoryMock.Verify(r => r.DeleteByEventIdAsync(ValidEventId, It.IsAny<CancellationToken>()), Times.Once);
         _eventRepositoryMock.Verify(r => r.DeleteAsync(ValidEventId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
