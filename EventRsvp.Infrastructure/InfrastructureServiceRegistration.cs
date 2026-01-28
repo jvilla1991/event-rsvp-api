@@ -35,6 +35,8 @@ public static class InfrastructureServiceRegistration
 
         services.AddScoped<IRsvpRepository, RsvpRepository>();
         services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IPollRepository, PollRepository>();
+        services.AddScoped<IPollVoteRepository, PollVoteRepository>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
 
         return services;
