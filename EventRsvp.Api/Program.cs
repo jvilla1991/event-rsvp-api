@@ -247,24 +247,30 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
     Predicate = _ => false
 });
 
-// Database setup
-// Skip in test environment to avoid conflicts with test database setup
-if (!app.Environment.IsEnvironment("Testing"))
+// MIGRATE_ONLY: used by the ECS CI/CD pipeline task — runs pending migrations then exits
+// before app.Run() so the same Docker image serves both roles without a separate binary.
+if (string.Equals(Environment.GetEnvironmentVariable("MIGRATE_ONLY"), "true",
+    StringComparison.OrdinalIgnoreCase))
 {
     using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<EventRsvp.Infrastructure.Data.EventRsvpDbContext>();
-    
-    if (app.Environment.IsDevelopment())
-    {
-        // Ensure database is created (for development)
-        await dbContext.Database.EnsureCreatedAsync();
-    }
-    else if (app.Environment.IsProduction())
-    {
-        // Run migrations in production
-        await dbContext.Database.MigrateAsync();
-    }
+    var dbContext = scope.ServiceProvider
+        .GetRequiredService<EventRsvp.Infrastructure.Data.EventRsvpDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("MIGRATE_ONLY mode: applying pending database migrations...");
+    await dbContext.Database.MigrateAsync();
+    logger.LogInformation("Migrations complete. Exiting.");
+    return;
 }
+
+// Development only: create DB schema if it does not exist yet
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider
+        .GetRequiredService<EventRsvp.Infrastructure.Data.EventRsvpDbContext>();
+    await dbContext.Database.EnsureCreatedAsync();
+}
+// Production: migrations are applied by the CI/CD pipeline before deployment
 
 app.Run();
 
