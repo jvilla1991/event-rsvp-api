@@ -1,61 +1,91 @@
+using EventRsvp.Api.Helpers;
 using EventRsvp.Application.DTOs;
 using EventRsvp.Application.Handlers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventRsvp.Api.Controllers;
 
+/// <summary>
+/// Controller for managing RSVPs for events
+/// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/events/{eventId}/rsvps")]
+[ApiExplorerSettings(GroupName = "RSVPs")]
 public class RsvpsController : ControllerBase
 {
     private readonly CreateRsvpHandler _createRsvpHandler;
-    private readonly GetRsvpsHandler _getRsvpsHandler;
-    private readonly ILogger<RsvpsController> _logger;
+    private readonly GetRsvpsByEventIdHandler _getRsvpsByEventIdHandler;
 
     public RsvpsController(
         CreateRsvpHandler createRsvpHandler,
-        GetRsvpsHandler getRsvpsHandler,
-        ILogger<RsvpsController> logger)
+        GetRsvpsByEventIdHandler getRsvpsByEventIdHandler)
     {
         _createRsvpHandler = createRsvpHandler;
-        _getRsvpsHandler = getRsvpsHandler;
-        _logger = logger;
+        _getRsvpsByEventIdHandler = getRsvpsByEventIdHandler;
     }
 
+    /// <summary>
+    /// Creates a new RSVP for the specified event
+    /// </summary>
+    /// <remarks>
+    /// Creates a new RSVP (Response to Invitation) for the specified event. 
+    /// The RSVP includes the attendee's name and whether they will attend.
+    /// </remarks>
+    /// <param name="eventId">The unique identifier of the event</param>
+    /// <param name="request">The RSVP request data containing name and attendance status</param>
+    /// <returns>The created RSVP with assigned ID</returns>
+    /// <response code="201">RSVP created successfully</response>
+    /// <response code="400">Invalid request data or event not found</response>
     [HttpPost]
     [ProducesResponseType(typeof(RsvpResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<RsvpResponse>> CreateRsvp([FromBody] CreateRsvpRequest request)
+    public async Task<ActionResult<RsvpResponse>> CreateRsvp(int eventId, [FromBody] CreateRsvpRequest request)
     {
-        if (!ModelState.IsValid)
+        if (request == null)
         {
-            return BadRequest(ModelState);
+            return ErrorResponseHelper.BadRequestResponse("Request body is required.");
         }
 
         try
         {
-            var response = await _createRsvpHandler.HandleAsync(request);
-            return CreatedAtAction(nameof(GetRsvps), new { id = response.Id }, response);
+            var response = await _createRsvpHandler.HandleAsync(eventId, request);
+            return CreatedAtAction(nameof(GetRsvps), new { eventId = eventId }, response);
         }
-        catch (Exception ex)
+        catch (Domain.Exceptions.InvalidRsvpException ex)
         {
-            _logger.LogError(ex, "Error creating RSVP");
+            if (ex.Message.Contains("not found"))
+            {
+                return ErrorResponseHelper.NotFoundResponse(ex.Message);
+            }
+            return ErrorResponseHelper.BadRequestResponse(ex.Message);
+        }
+        catch
+        {
             throw;
         }
     }
 
+    /// <summary>
+    /// Gets all RSVPs for the specified event
+    /// </summary>
+    /// <remarks>
+    /// Retrieves all RSVPs (Responses to Invitations) for a specific event. 
+    /// Returns an empty list if the event has no RSVPs or if the event doesn't exist.
+    /// </remarks>
+    /// <param name="eventId">The unique identifier of the event</param>
+    /// <returns>List of RSVPs for the specified event</returns>
+    /// <response code="200">Returns the list of RSVPs for the event</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<RsvpResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<RsvpResponse>>> GetRsvps()
+    public async Task<ActionResult<IEnumerable<RsvpResponse>>> GetRsvps(int eventId)
     {
         try
         {
-            var rsvps = await _getRsvpsHandler.HandleAsync();
+            var rsvps = await _getRsvpsByEventIdHandler.HandleAsync(eventId);
             return Ok(rsvps);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error retrieving RSVPs");
             throw;
         }
     }

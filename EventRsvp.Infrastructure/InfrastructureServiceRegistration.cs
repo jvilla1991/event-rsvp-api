@@ -1,6 +1,8 @@
+using EventRsvp.Application.Services;
 using EventRsvp.Domain.Interfaces;
 using EventRsvp.Infrastructure.Data;
 using EventRsvp.Infrastructure.Data.Repositories;
+using EventRsvp.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,8 +17,6 @@ public static class InfrastructureServiceRegistration
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         
-        // Check environment variable directly (set by test setup)
-        // Use case-insensitive comparison to match ASP.NET Core's IsEnvironment() behavior
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
         var isTesting = string.Equals(environment, "Testing", StringComparison.OrdinalIgnoreCase);
 
@@ -34,6 +34,10 @@ public static class InfrastructureServiceRegistration
         }
 
         services.AddScoped<IRsvpRepository, RsvpRepository>();
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IPollRepository, PollRepository>();
+        services.AddScoped<IPollVoteRepository, PollVoteRepository>();
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
 
         return services;
     }

@@ -6,5 +6,6 @@ public interface IRsvpRepository
 {
     Task<Rsvp> AddAsync(Rsvp rsvp, CancellationToken cancellationToken = default);
     Task<IEnumerable<Rsvp>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IEnumerable<Rsvp>> GetByEventIdAsync(int eventId, CancellationToken cancellationToken = default);
+    Task DeleteByEventIdAsync(int eventId, CancellationToken cancellationToken = default);
 }
-

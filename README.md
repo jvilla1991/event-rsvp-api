@@ -1,6 +1,6 @@
 # Event RSVP API
 
-A .NET 9 Web API following Clean Architecture principles for managing event RSVPs.
+A .NET 8 Web API following Clean Architecture principles for managing event RSVPs.
 
 ## Architecture
 
@@ -13,7 +13,7 @@ The solution follows Clean Architecture with four main layers:
 
 ## Prerequisites
 
-- .NET 9 SDK
+- .NET 8 SDK
 - PostgreSQL 12+ (or Docker with PostgreSQL)
 
 ## Local Setup

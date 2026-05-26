@@ -69,9 +69,7 @@ public class GetRsvpsHandlerTests
         {
             Id = 1,
             Name = "John Doe",
-            BringingDish = true,
-            Dishes = new List<string> { "Pasta" },
-            WhiteElephant = true,
+            WillAttend = true,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -87,6 +85,7 @@ public class GetRsvpsHandlerTests
         result[0].Should().BeOfType<RsvpResponse>();
         result[0].Id.Should().Be(1);
         result[0].Name.Should().Be("John Doe");
+        result[0].WillAttend.Should().BeTrue();
     }
 }
 

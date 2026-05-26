@@ -22,9 +22,7 @@ public class GetRsvpsHandler
             {
                 Id = r.Id,
                 Name = r.Name,
-                BringingDish = r.BringingDish,
-                Dishes = r.Dishes,
-                WhiteElephant = r.WhiteElephant,
+                WillAttend = r.WillAttend,
                 CreatedAt = r.CreatedAt
             });
     }

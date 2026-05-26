@@ -36,10 +36,9 @@ public class RsvpRepositoryTests
         // Arrange
         var rsvp = new Rsvp
         {
+            EventId = 1,
             Name = "John Doe",
-            BringingDish = true,
-            Dishes = new List<string> { "Pasta Salad" },
-            WhiteElephant = true,
+            WillAttend = true,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -57,8 +56,8 @@ public class RsvpRepositoryTests
     public async Task GetAllAsync_WhenRsvpsExist_ShouldReturnAllRsvps()
     {
         // Arrange
-        var rsvp1 = new Rsvp { Name = "John", CreatedAt = DateTime.UtcNow.AddHours(-2) };
-        var rsvp2 = new Rsvp { Name = "Jane", CreatedAt = DateTime.UtcNow.AddHours(-1) };
+        var rsvp1 = new Rsvp { EventId = 1, Name = "John", WillAttend = true, CreatedAt = DateTime.UtcNow.AddHours(-2) };
+        var rsvp2 = new Rsvp { EventId = 1, Name = "Jane", WillAttend = true, CreatedAt = DateTime.UtcNow.AddHours(-1) };
         
         _context.Rsvps.AddRange(rsvp1, rsvp2);
         await _context.SaveChangesAsync();
