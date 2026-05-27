@@ -36,7 +36,8 @@ public class CreateInviteHandlerTests
         _handler = new CreateInviteHandler(_inviteRepositoryMock.Object, _eventRepositoryMock.Object);
     }
 
-    private static CreateInviteRequest ValidRequest(string name = "Bob") => new() { Name = name };
+    private static CreateInviteRequest NamedRequest(string name) => new() { Name = name };
+    private static CreateInviteRequest AnonymousRequest() => new() { Name = null };
 
     private static Invite BuildSavedInvite(string name, int id = 1) => new()
     {
@@ -48,10 +49,10 @@ public class CreateInviteHandlerTests
     };
 
     [Test]
-    public async Task HandleAsync_WhenValidRequest_ShouldReturnMappedInviteResponse()
+    public async Task HandleAsync_WhenNameProvided_ShouldReturnMappedInviteResponse()
     {
         // Arrange
-        var request = ValidRequest("Alice");
+        var request = NamedRequest("Alice");
         var saved = BuildSavedInvite("Alice");
 
         _inviteRepositoryMock
@@ -72,7 +73,25 @@ public class CreateInviteHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_WhenValidRequest_ShouldGenerateNonEmptyToken()
+    public async Task HandleAsync_WhenNameIsNull_ShouldSucceedWithEmptyName()
+    {
+        // Arrange — Name is optional; null becomes empty string
+        var request = AnonymousRequest();
+        var saved = BuildSavedInvite(string.Empty);
+
+        _inviteRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Invite>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(saved);
+
+        // Act
+        var act = async () => await _handler.HandleAsync(TestEventId, request);
+
+        // Assert — should not throw
+        await act.Should().NotThrowAsync();
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenNameIsNull_ShouldStoreEmptyString()
     {
         // Arrange
         _inviteRepositoryMock
@@ -80,17 +99,19 @@ public class CreateInviteHandlerTests
             .ReturnsAsync((Invite inv, CancellationToken _) => { inv.Id = 1; return inv; });
 
         // Act
-        var result = await _handler.HandleAsync(TestEventId, ValidRequest());
+        await _handler.HandleAsync(TestEventId, AnonymousRequest());
 
         // Assert
-        result.Token.Should().NotBeNullOrWhiteSpace();
+        _inviteRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Invite>(i => i.Name == string.Empty),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
     public async Task HandleAsync_WhenNameHasWhitespace_ShouldTrimName()
     {
         // Arrange
-        var request = new CreateInviteRequest { Name = "  Bob  " };
+        var request = NamedRequest("  Bob  ");
 
         _inviteRepositoryMock
             .Setup(r => r.AddAsync(It.IsAny<Invite>(), It.IsAny<CancellationToken>()))
@@ -106,10 +127,25 @@ public class CreateInviteHandlerTests
     }
 
     [Test]
+    public async Task HandleAsync_WhenValidRequest_ShouldGenerateNonEmptyToken()
+    {
+        // Arrange
+        _inviteRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Invite>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Invite inv, CancellationToken _) => { inv.Id = 1; return inv; });
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, NamedRequest("Bob"));
+
+        // Assert
+        result.Token.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Test]
     public async Task HandleAsync_WhenEventNotFound_ShouldThrowInvalidInviteException()
     {
         // Act
-        var act = async () => await _handler.HandleAsync(NonExistentEventId, ValidRequest());
+        var act = async () => await _handler.HandleAsync(NonExistentEventId, NamedRequest("Bob"));
 
         // Assert
         await act.Should().ThrowAsync<InvalidInviteException>()
@@ -120,23 +156,10 @@ public class CreateInviteHandlerTests
     public async Task HandleAsync_WhenEventNotFound_ShouldNotCallRepository()
     {
         // Act
-        try { await _handler.HandleAsync(NonExistentEventId, ValidRequest()); } catch { }
+        try { await _handler.HandleAsync(NonExistentEventId, NamedRequest("Bob")); } catch { }
 
         // Assert
         _inviteRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Invite>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Test]
-    public async Task HandleAsync_WhenNameIsEmpty_ShouldThrowInvalidInviteException()
-    {
-        // Arrange
-        var request = new CreateInviteRequest { Name = string.Empty };
-
-        // Act
-        var act = async () => await _handler.HandleAsync(TestEventId, request);
-
-        // Assert
-        await act.Should().ThrowAsync<InvalidInviteException>();
     }
 
     [Test]
@@ -148,7 +171,7 @@ public class CreateInviteHandlerTests
             .ReturnsAsync(BuildSavedInvite("Bob"));
 
         // Act
-        await _handler.HandleAsync(TestEventId, ValidRequest());
+        await _handler.HandleAsync(TestEventId, NamedRequest("Bob"));
 
         // Assert
         _inviteRepositoryMock.Verify(r => r.AddAsync(

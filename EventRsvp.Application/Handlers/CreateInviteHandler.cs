@@ -25,7 +25,7 @@ public class CreateInviteHandler
         var invite = new Invite
         {
             EventId = eventId,
-            Name = request.Name.Trim(),
+            Name = request.Name?.Trim() ?? string.Empty,
             Token = Guid.NewGuid().ToString("N"), // compact lowercase hex token
             CreatedAt = DateTime.UtcNow
         };

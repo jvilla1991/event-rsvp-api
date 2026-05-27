@@ -92,12 +92,10 @@ public class InvitesControllerTests
         return (await response.Content.ReadFromJsonAsync<EventResponse>())!;
     }
 
-    private async Task<InviteResponse> CreateTestInviteAsync(int eventId, string name = "Bob")
+    private async Task<InviteResponse> CreateTestInviteAsync(int eventId, string? name = "Bob")
     {
-        var token = await GetAdminTokenAsync();
-        using var auth = CreateAuthenticatedClient(token);
-
-        var response = await auth.PostAsJsonAsync($"{EventsApiPath}/{eventId}/invites", new CreateInviteRequest
+        // CreateInvite is a public endpoint — no auth needed
+        var response = await _client.PostAsJsonAsync($"{EventsApiPath}/{eventId}/invites", new CreateInviteRequest
         {
             Name = name
         });
@@ -205,54 +203,50 @@ public class InvitesControllerTests
     }
 
     [Test]
-    public async Task CreateInvite_WhenUnauthenticated_ShouldReturn401()
+    public async Task CreateInvite_IsPublic_ShouldReturn201WithoutAuthentication()
     {
-        // Arrange
+        // Arrange — anyone on the event page can generate a shareable link
         var evt = await CreateTestEventAsync();
 
-        // Act
+        // Act — unauthenticated client
         var response = await _client.PostAsJsonAsync(InvitesPath(evt.Id), new CreateInviteRequest
         {
             Name = "Dave"
         });
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Test]
+    public async Task CreateInvite_WhenNameIsOmitted_ShouldReturn201WithEmptyName()
+    {
+        // Arrange — Name is optional; an anonymous invite is valid
+        var evt = await CreateTestEventAsync();
+
+        // Act
+        var response = await _client.PostAsJsonAsync(InvitesPath(evt.Id), new CreateInviteRequest
+        {
+            Name = null
+        });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var invite = await response.Content.ReadFromJsonAsync<InviteResponse>();
+        invite!.Name.Should().BeNullOrEmpty();
     }
 
     [Test]
     public async Task CreateInvite_WhenEventDoesNotExist_ShouldReturn404()
     {
-        // Arrange
-        var token = await GetAdminTokenAsync();
-        using var auth = CreateAuthenticatedClient(token);
-
-        // Act
-        var response = await auth.PostAsJsonAsync(InvitesPath(999), new CreateInviteRequest
+        // Act — no auth required, but event must exist
+        var response = await _client.PostAsJsonAsync(InvitesPath(999), new CreateInviteRequest
         {
             Name = "Eve"
         });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Test]
-    public async Task CreateInvite_WhenNameIsEmpty_ShouldReturn400()
-    {
-        // Arrange
-        var evt = await CreateTestEventAsync();
-        var token = await GetAdminTokenAsync();
-        using var auth = CreateAuthenticatedClient(token);
-
-        // Act
-        var response = await auth.PostAsJsonAsync(InvitesPath(evt.Id), new CreateInviteRequest
-        {
-            Name = string.Empty
-        });
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Test]

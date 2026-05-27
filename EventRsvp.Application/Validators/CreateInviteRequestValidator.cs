@@ -7,8 +7,9 @@ public class CreateInviteRequestValidator : AbstractValidator<CreateInviteReques
 {
     public CreateInviteRequestValidator()
     {
+        // Name is optional; if supplied it must fit the column
         RuleFor(x => x.Name)
-            .NotEmpty().WithMessage("Name is required.")
-            .MaximumLength(200).WithMessage("Name must not exceed 200 characters.");
+            .MaximumLength(200).WithMessage("Name must not exceed 200 characters.")
+            .When(x => x.Name != null);
     }
 }

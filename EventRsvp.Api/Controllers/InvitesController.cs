@@ -72,21 +72,19 @@ public class InvitesController : ControllerBase
     /// Create a new shareable invite for an event
     /// </summary>
     /// <remarks>
-    /// Requires admin authentication. Creates an invite for the named person and returns
-    /// a unique token that can be embedded in a shareable link.
+    /// Public endpoint — no authentication required. Anyone on the event page can generate
+    /// a shareable link. Optionally provide a name to identify who the link was sent to;
+    /// omit it for an anonymous invite. Admins can then see which invites have been opened.
     /// </remarks>
     /// <param name="eventId">The unique identifier of the event</param>
-    /// <param name="request">The invite request containing the recipient's name</param>
-    /// <returns>The created invite including the shareable token</returns>
+    /// <param name="request">The invite request; Name is optional</param>
+    /// <returns>The created invite including the unique shareable token</returns>
     /// <response code="201">Invite created successfully</response>
-    /// <response code="400">Invalid request data</response>
-    /// <response code="401">Unauthorized - Admin authentication required</response>
+    /// <response code="400">Invalid request data (e.g. name exceeds 200 characters)</response>
     /// <response code="404">Event not found</response>
     [HttpPost("api/events/{eventId}/invites")]
-    [Authorize(Policy = "Admin")]
     [ProducesResponseType(typeof(InviteResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<InviteResponse>> CreateInvite(int eventId, [FromBody] CreateInviteRequest request)
     {

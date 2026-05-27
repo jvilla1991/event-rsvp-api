@@ -6,7 +6,8 @@ namespace EventRsvp.Application.DTOs;
 public class CreateInviteRequest
 {
     /// <summary>
-    /// The name of the person being invited (e.g. "Bob")
+    /// Optional name to identify who this invite was sent to (e.g. "Bob").
+    /// If omitted the invite is anonymous.
     /// </summary>
-    public string Name { get; set; } = string.Empty;
+    public string? Name { get; set; }
 }

@@ -8,9 +8,10 @@ public class Invite
     public int EventId { get; set; }
 
     /// <summary>
-    /// The name of the person this invite was sent to (e.g. "Bob")
+    /// Optional name identifying who this invite was sent to (e.g. "Bob").
+    /// Empty string when created anonymously.
     /// </summary>
-    public string Name { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;  // stored as empty when not provided
 
     /// <summary>
     /// Unique token embedded in the shareable link
@@ -29,8 +30,7 @@ public class Invite
         if (EventId <= 0)
             throw new InvalidInviteException("Event ID is required and must be greater than zero.");
 
-        if (string.IsNullOrWhiteSpace(Name))
-            throw new InvalidInviteException("Invite name is required and cannot be empty.");
+        // Name is optional — no validation required
 
         if (string.IsNullOrWhiteSpace(Token))
             throw new InvalidInviteException("Invite token is required.");
