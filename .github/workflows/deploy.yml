@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
 
 env:
-  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_REGION: us-east-1
   ECR_REPOSITORY: event-rsvp-api
+  ECR_REGISTRY: 204318838594.dkr.ecr.us-east-1.amazonaws.com
   ECS_CLUSTER: event-rsvp-prod-migrations
   ECS_TASK_DEFINITION: event-rsvp-prod-migration
 
@@ -189,7 +190,7 @@ jobs:
 
       - name: Update App Runner service image
         env:
-          IMAGE: ${{ needs.build-push.outputs.ecr-registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.build-push.outputs.image-tag }}
+          IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
         run: |
           aws apprunner update-service \
             --service-arn "${{ secrets.APPRUNNER_SERVICE_ARN }}" \

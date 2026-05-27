@@ -23,6 +23,10 @@ public static class ApplicationServiceRegistration
         services.AddScoped<DeletePollHandler>();
         services.AddScoped<SubmitPollVoteHandler>();
         services.AddScoped<GetPollResultsHandler>();
+        services.AddScoped<CreateInviteHandler>();
+        services.AddScoped<GetInvitesByEventIdHandler>();
+        services.AddScoped<ViewInviteHandler>();
+        services.AddScoped<DeleteInviteHandler>();
         services.AddValidatorsFromAssembly(typeof(ApplicationServiceRegistration).Assembly);
 
         return services;

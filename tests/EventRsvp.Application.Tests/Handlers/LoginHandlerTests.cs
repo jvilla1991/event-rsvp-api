@@ -15,7 +15,9 @@ public class LoginHandlerTests
     private Mock<IConfiguration> _configurationMock = null!;
     private LoginHandler _handler = null!;
     private const string ValidUsername = "admin";
-    private const string ValidPassword = "admin123";
+    private const string ValidPasswordPlainText = "admin123";
+    // BCrypt hash of "admin123" — mirrors what appsettings.json and Secrets Manager store
+    private const string ValidPasswordHash = "$2a$12$Chjf7rGJ9GtbzPyFK/2MwOR7RxuJ2s2mnF.wPTDmqaeno2n5.QrqK";
     private const string ValidToken = "valid-jwt-token";
     private const int JwtExpirationMinutes = 60;
 
@@ -28,10 +30,10 @@ public class LoginHandlerTests
         // Setup configuration mocks
         var adminSectionMock = new Mock<IConfigurationSection>();
         adminSectionMock.Setup(s => s["Username"]).Returns(ValidUsername);
-        adminSectionMock.Setup(s => s["Password"]).Returns(ValidPassword);
+        adminSectionMock.Setup(s => s["Password"]).Returns(ValidPasswordHash);
         
         _configurationMock.Setup(c => c["Admin:Username"]).Returns(ValidUsername);
-        _configurationMock.Setup(c => c["Admin:Password"]).Returns(ValidPassword);
+        _configurationMock.Setup(c => c["Admin:Password"]).Returns(ValidPasswordHash);
         _configurationMock.Setup(c => c["Jwt:ExpirationMinutes"]).Returns(JwtExpirationMinutes.ToString());
         
         _handler = new LoginHandler(_jwtTokenServiceMock.Object, _configurationMock.Object);
@@ -44,7 +46,7 @@ public class LoginHandlerTests
         var request = new LoginRequest
         {
             Username = ValidUsername,
-            Password = ValidPassword
+            Password = ValidPasswordPlainText
         };
         
         _jwtTokenServiceMock
@@ -71,7 +73,7 @@ public class LoginHandlerTests
         var request = new LoginRequest
         {
             Username = ValidUsername.ToUpper(),
-            Password = ValidPassword
+            Password = ValidPasswordPlainText
         };
         
         _jwtTokenServiceMock
@@ -94,7 +96,7 @@ public class LoginHandlerTests
         var request = new LoginRequest
         {
             Username = "wronguser",
-            Password = ValidPassword
+            Password = ValidPasswordPlainText
         };
 
         // Act & Assert
@@ -135,7 +137,7 @@ public class LoginHandlerTests
         var request = new LoginRequest
         {
             Username = null!,
-            Password = ValidPassword
+            Password = ValidPasswordPlainText
         };
 
         // Act & Assert
@@ -151,7 +153,7 @@ public class LoginHandlerTests
         var request = new LoginRequest
         {
             Username = string.Empty,
-            Password = ValidPassword
+            Password = ValidPasswordPlainText
         };
 
         // Act & Assert
@@ -199,7 +201,7 @@ public class LoginHandlerTests
         var request = new LoginRequest
         {
             Username = ValidUsername,
-            Password = ValidPassword
+            Password = ValidPasswordPlainText
         };
         
         var expectedExpirationMinutes = 120;

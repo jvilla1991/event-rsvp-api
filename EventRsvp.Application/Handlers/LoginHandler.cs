@@ -51,17 +51,15 @@ public class LoginHandler
             throw new InvalidOperationException("Admin credentials are not configured.");
         }
 
-        // Verify credentials (using constant time comparison for security)
-        // In development, we compare against plain text password from config
-        // In production, the password should be hashed and stored securely
+        // Verify credentials — username is case-insensitive, password is verified
+        // against a BCrypt hash stored in config (Secrets Manager in production,
+        // appsettings.json in development). Plain-text passwords are never stored.
         bool isValidCredentials = false;
-        
-        if (string.Equals(request.Username, adminUsername, StringComparison.OrdinalIgnoreCase))
+
+        if (string.Equals(request.Username, adminUsername, StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrEmpty(request.Password))
         {
-            // For now, we'll use plain text comparison (development only)
-            // In production, the password in config should be hashed using BCrypt
-            // and we'd use PasswordService.VerifyPassword here
-            isValidCredentials = string.Equals(request.Password, adminPassword, StringComparison.Ordinal);
+            isValidCredentials = BCrypt.Net.BCrypt.Verify(request.Password, adminPassword);
         }
 
         if (!isValidCredentials)
