@@ -56,9 +56,10 @@ public class LoginHandler
         // appsettings.json in development). Plain-text passwords are never stored.
         bool isValidCredentials = false;
 
-        if (string.Equals(request.Username, adminUsername, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(request.Username, adminUsername, StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrEmpty(request.Password))
         {
-            isValidCredentials = BCrypt.Net.BCrypt.EnhancedVerify(request.Password, adminPassword);
+            isValidCredentials = BCrypt.Net.BCrypt.Verify(request.Password, adminPassword);
         }
 
         if (!isValidCredentials)
