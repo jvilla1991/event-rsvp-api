@@ -15,6 +15,7 @@ public class EventRsvpDbContext : DbContext
     public DbSet<Event> Events { get; set; }
     public DbSet<Poll> Polls { get; set; }
     public DbSet<PollVote> PollVotes { get; set; }
+    public DbSet<Invite> Invites { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -165,6 +166,43 @@ public class EventRsvpDbContext : DbContext
             entity.HasOne<Poll>()
                 .WithMany()
                 .HasForeignKey(e => e.PollId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Invite>(entity =>
+        {
+            entity.ToTable("Invites");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.EventId)
+                .IsRequired();
+
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.Token)
+                .IsRequired()
+                .HasMaxLength(64);
+
+            entity.HasIndex(e => e.Token)
+                .IsUnique();
+
+            entity.Property(e => e.ViewedAt)
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property(e => e.CreatedAt)
+                .IsRequired()
+                .HasDefaultValueSql("NOW()");
+
+            // Configure foreign key relationship to Event with cascade delete
+            entity.HasOne<Event>()
+                .WithMany()
+                .HasForeignKey(e => e.EventId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }
