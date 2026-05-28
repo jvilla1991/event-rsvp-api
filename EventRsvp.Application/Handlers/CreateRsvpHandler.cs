@@ -1,4 +1,5 @@
 using EventRsvp.Application.DTOs;
+using EventRsvp.Application.Services;
 using EventRsvp.Domain.Entities;
 using EventRsvp.Domain.Interfaces;
 
@@ -8,11 +9,16 @@ public class CreateRsvpHandler
 {
     private readonly IRsvpRepository _rsvpRepository;
     private readonly IEventRepository _eventRepository;
+    private readonly IEmailService _emailService;
 
-    public CreateRsvpHandler(IRsvpRepository rsvpRepository, IEventRepository eventRepository)
+    public CreateRsvpHandler(
+        IRsvpRepository rsvpRepository,
+        IEventRepository eventRepository,
+        IEmailService emailService)
     {
         _rsvpRepository = rsvpRepository;
         _eventRepository = eventRepository;
+        _emailService = emailService;
     }
 
     public async Task<RsvpResponse> HandleAsync(int eventId, CreateRsvpRequest request, CancellationToken cancellationToken = default)
@@ -36,6 +42,16 @@ public class CreateRsvpHandler
 
         var createdRsvp = await _rsvpRepository.AddAsync(rsvp, cancellationToken);
 
+        // Send notification if the attendee proposed an alternative time
+        if (createdRsvp.ProposedTime.HasValue)
+        {
+            await _emailService.SendTimeProposalNotificationAsync(
+                createdRsvp.Name,
+                eventEntity.Title,
+                createdRsvp.ProposedTime.Value,
+                cancellationToken);
+        }
+
         return new RsvpResponse
         {
             Id = createdRsvp.Id,
@@ -46,4 +62,3 @@ public class CreateRsvpHandler
         };
     }
 }
-

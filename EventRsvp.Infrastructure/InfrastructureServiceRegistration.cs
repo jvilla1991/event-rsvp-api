@@ -40,6 +40,8 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IInviteRepository, InviteRepository>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
 
+        services.AddScoped<IEmailService, EmailService>();
+
         return services;
     }
 }

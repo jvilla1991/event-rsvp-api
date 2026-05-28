@@ -101,6 +101,10 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection(JwtSettings.SectionName));
 
+// Configure Email Settings
+builder.Services.Configure<EventRsvp.Infrastructure.Services.EmailSettings>(
+    builder.Configuration.GetSection(EventRsvp.Infrastructure.Services.EmailSettings.SectionName));
+
 // Validate JWT Settings at startup
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
 if (jwtSettings == null || string.IsNullOrWhiteSpace(jwtSettings.SecretKey) || jwtSettings.SecretKey.Length < 32)

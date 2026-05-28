@@ -1,5 +1,6 @@
 using EventRsvp.Application.DTOs;
 using EventRsvp.Application.Handlers;
+using EventRsvp.Application.Services;
 using EventRsvp.Domain.Entities;
 using EventRsvp.Domain.Interfaces;
 using FluentAssertions;
@@ -13,6 +14,7 @@ public class CreateRsvpHandlerTests
 {
     private Mock<IRsvpRepository> _rsvpRepositoryMock = null!;
     private Mock<IEventRepository> _eventRepositoryMock = null!;
+    private Mock<IEmailService> _emailServiceMock = null!;
     private CreateRsvpHandler _handler = null!;
     private const int TestEventId = 1;
 
@@ -21,13 +23,17 @@ public class CreateRsvpHandlerTests
     {
         _rsvpRepositoryMock = new Mock<IRsvpRepository>();
         _eventRepositoryMock = new Mock<IEventRepository>();
-        
+        _emailServiceMock = new Mock<IEmailService>();
+
         // Setup default event to exist
         _eventRepositoryMock
             .Setup(r => r.GetByIdAsync(TestEventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Event { Id = TestEventId, Title = "Test Event" });
-        
-        _handler = new CreateRsvpHandler(_rsvpRepositoryMock.Object, _eventRepositoryMock.Object);
+
+        _handler = new CreateRsvpHandler(
+            _rsvpRepositoryMock.Object,
+            _eventRepositoryMock.Object,
+            _emailServiceMock.Object);
     }
 
     [Test]
@@ -265,6 +271,61 @@ public class CreateRsvpHandlerTests
             It.Is<Rsvp>(rsvp => rsvp.ProposedTime == null),
             It.IsAny<CancellationToken>()), Times.Once);
         result.ProposedTime.Should().BeNull();
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenProposedTimeSet_ShouldSendEmailNotification()
+    {
+        // Arrange
+        var proposedTime = new DateTime(2026, 6, 15, 14, 0, 0, DateTimeKind.Utc);
+        var request = new CreateRsvpRequest { Name = "Jane Doe", WillAttend = false, ProposedTime = proposedTime };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Rsvp { Id = 1, EventId = TestEventId, Name = "Jane Doe", WillAttend = false, ProposedTime = proposedTime });
+
+        // Act
+        await _handler.HandleAsync(TestEventId, request);
+
+        // Assert
+        _emailServiceMock.Verify(e => e.SendTimeProposalNotificationAsync(
+            "Jane Doe", "Test Event", proposedTime, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenNoProposedTime_ShouldNotSendEmailNotification()
+    {
+        // Arrange — plain decline with no proposed time
+        var request = new CreateRsvpRequest { Name = "Jane Doe", WillAttend = false, ProposedTime = null };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Rsvp { Id = 1, EventId = TestEventId, Name = "Jane Doe", WillAttend = false, ProposedTime = null });
+
+        // Act
+        await _handler.HandleAsync(TestEventId, request);
+
+        // Assert — no email when there is nothing to propose
+        _emailServiceMock.Verify(e => e.SendTimeProposalNotificationAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenWillAttendTrue_ShouldNotSendEmailNotification()
+    {
+        // Arrange
+        var request = new CreateRsvpRequest { Name = "John Doe", WillAttend = true };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Rsvp { Id = 1, EventId = TestEventId, Name = "John Doe", WillAttend = true, ProposedTime = null });
+
+        // Act
+        await _handler.HandleAsync(TestEventId, request);
+
+        // Assert
+        _emailServiceMock.Verify(e => e.SendTimeProposalNotificationAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
