@@ -262,13 +262,13 @@ if (string.Equals(Environment.GetEnvironmentVariable("MIGRATE_ONLY"), "true",
     return;
 }
 
-// Development only: create DB schema if it does not exist yet
+// Development: apply any pending migrations automatically on startup
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider
         .GetRequiredService<EventRsvp.Infrastructure.Data.EventRsvpDbContext>();
-    await dbContext.Database.EnsureCreatedAsync();
+    await dbContext.Database.MigrateAsync();
 }
 // Production: migrations are applied by the CI/CD pipeline before deployment
 
