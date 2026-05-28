@@ -23,6 +23,7 @@ public class GetEventsHandler
             Description = e.Description,
             EventDateTime = e.EventDateTime,
             Address = e.Address,
+            AllowTimeProposal = e.AllowTimeProposal,
             CreatedAt = e.CreatedAt,
             UpdatedAt = e.UpdatedAt
         });

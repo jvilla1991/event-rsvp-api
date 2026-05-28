@@ -21,6 +21,7 @@ public class CreateEventHandler
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
             EventDateTime = request.EventDateTime,
             Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
+            AllowTimeProposal = request.AllowTimeProposal,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -35,6 +36,7 @@ public class CreateEventHandler
             Description = createdEvent.Description,
             EventDateTime = createdEvent.EventDateTime,
             Address = createdEvent.Address,
+            AllowTimeProposal = createdEvent.AllowTimeProposal,
             CreatedAt = createdEvent.CreatedAt,
             UpdatedAt = createdEvent.UpdatedAt
         };

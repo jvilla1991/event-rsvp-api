@@ -40,6 +40,9 @@ public class EventRsvpDbContext : DbContext
             entity.Property(e => e.WillAttend)
                 .IsRequired();
 
+            entity.Property(e => e.ProposedTime)
+                .HasColumnType("timestamp with time zone");
+
             entity.Property(e => e.CreatedAt)
                 .IsRequired()
                 .HasDefaultValueSql("NOW()");
@@ -76,6 +79,10 @@ public class EventRsvpDbContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .IsRequired()
                 .HasDefaultValueSql("NOW()");
+
+            entity.Property(e => e.AllowTimeProposal)
+                .IsRequired()
+                .HasDefaultValue(false);
 
             entity.Property(e => e.UpdatedAt)
                 .HasColumnType("timestamp with time zone");

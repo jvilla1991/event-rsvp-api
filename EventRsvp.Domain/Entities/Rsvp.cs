@@ -8,6 +8,12 @@ public class Rsvp
     public int EventId { get; set; }
     public string Name { get; set; } = string.Empty;
     public bool WillAttend { get; set; }
+
+    /// <summary>
+    /// Optional time proposed by the attendee when they cannot make the original time
+    /// </summary>
+    public DateTime? ProposedTime { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public void Validate()

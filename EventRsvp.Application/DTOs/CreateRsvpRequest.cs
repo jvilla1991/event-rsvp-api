@@ -22,5 +22,11 @@ public class CreateRsvpRequest
     /// </summary>
     /// <example>true</example>
     public bool WillAttend { get; set; } = true;
+
+    /// <summary>
+    /// Optional alternative time proposed by the person when they cannot attend.
+    /// Only meaningful when WillAttend is false.
+    /// </summary>
+    public DateTime? ProposedTime { get; set; }
 }
 
