@@ -101,6 +101,10 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection(JwtSettings.SectionName));
 
+// Configure Email Settings
+builder.Services.Configure<EventRsvp.Infrastructure.Services.EmailSettings>(
+    builder.Configuration.GetSection(EventRsvp.Infrastructure.Services.EmailSettings.SectionName));
+
 // Validate JWT Settings at startup
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
 if (jwtSettings == null || string.IsNullOrWhiteSpace(jwtSettings.SecretKey) || jwtSettings.SecretKey.Length < 32)
@@ -262,13 +266,13 @@ if (string.Equals(Environment.GetEnvironmentVariable("MIGRATE_ONLY"), "true",
     return;
 }
 
-// Development only: create DB schema if it does not exist yet
+// Development: apply any pending migrations automatically on startup
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider
         .GetRequiredService<EventRsvp.Infrastructure.Data.EventRsvpDbContext>();
-    await dbContext.Database.EnsureCreatedAsync();
+    await dbContext.Database.MigrateAsync();
 }
 // Production: migrations are applied by the CI/CD pipeline before deployment
 

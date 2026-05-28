@@ -28,6 +28,7 @@ public class GetEventHandler
             Description = eventEntity.Description,
             EventDateTime = eventEntity.EventDateTime,
             Address = eventEntity.Address,
+            AllowTimeProposal = eventEntity.AllowTimeProposal,
             CreatedAt = eventEntity.CreatedAt,
             UpdatedAt = eventEntity.UpdatedAt
         };

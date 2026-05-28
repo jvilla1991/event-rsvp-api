@@ -229,5 +229,93 @@ public class RsvpsControllerTests
         result2!.Should().HaveCount(1);
         result2[0].Name.Should().Be("Jane");
     }
+
+    [Test]
+    public async Task CreateRsvp_WhenWillAttendFalseWithProposedTime_ShouldReturn201AndStoreProposedTime()
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<EventRsvpDbContext>();
+        var testEvent = new EventRsvp.Domain.Entities.Event { Title = "Test Event" };
+        dbContext.Events.Add(testEvent);
+        await dbContext.SaveChangesAsync();
+        var eventId = testEvent.Id;
+
+        var proposedTime = new DateTime(2026, 7, 1, 18, 0, 0, DateTimeKind.Utc);
+        var request = new CreateRsvpRequest
+        {
+            Name = "Jane Doe",
+            WillAttend = false,
+            ProposedTime = proposedTime
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync($"/api/events/{eventId}/rsvps", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<RsvpResponse>();
+        result.Should().NotBeNull();
+        result!.WillAttend.Should().BeFalse();
+        result.ProposedTime.Should().Be(proposedTime);
+    }
+
+    [Test]
+    public async Task CreateRsvp_WhenWillAttendTrueWithProposedTime_ShouldIgnoreProposedTime()
+    {
+        // Arrange — ProposedTime should be ignored when WillAttend is true
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<EventRsvpDbContext>();
+        var testEvent = new EventRsvp.Domain.Entities.Event { Title = "Test Event" };
+        dbContext.Events.Add(testEvent);
+        await dbContext.SaveChangesAsync();
+        var eventId = testEvent.Id;
+
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            WillAttend = true,
+            ProposedTime = new DateTime(2026, 7, 1, 18, 0, 0, DateTimeKind.Utc)
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync($"/api/events/{eventId}/rsvps", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<RsvpResponse>();
+        result.Should().NotBeNull();
+        result!.WillAttend.Should().BeTrue();
+        result.ProposedTime.Should().BeNull();
+    }
+
+    [Test]
+    public async Task CreateRsvp_WhenWillAttendFalseWithNoProposedTime_ShouldReturn201WithNullProposedTime()
+    {
+        // Arrange — declining with no proposed time
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<EventRsvpDbContext>();
+        var testEvent = new EventRsvp.Domain.Entities.Event { Title = "Test Event" };
+        dbContext.Events.Add(testEvent);
+        await dbContext.SaveChangesAsync();
+        var eventId = testEvent.Id;
+
+        var request = new CreateRsvpRequest
+        {
+            Name = "Jane Doe",
+            WillAttend = false,
+            ProposedTime = null
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync($"/api/events/{eventId}/rsvps", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<RsvpResponse>();
+        result.Should().NotBeNull();
+        result!.WillAttend.Should().BeFalse();
+        result.ProposedTime.Should().BeNull();
+    }
 }
 
