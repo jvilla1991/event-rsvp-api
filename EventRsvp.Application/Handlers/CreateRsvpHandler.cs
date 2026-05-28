@@ -28,6 +28,7 @@ public class CreateRsvpHandler
             EventId = eventId,
             Name = request.Name.Trim(),
             WillAttend = request.WillAttend,
+            ProposedTime = request.WillAttend ? null : request.ProposedTime,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -40,6 +41,7 @@ public class CreateRsvpHandler
             Id = createdRsvp.Id,
             Name = createdRsvp.Name,
             WillAttend = createdRsvp.WillAttend,
+            ProposedTime = createdRsvp.ProposedTime,
             CreatedAt = createdRsvp.CreatedAt
         };
     }

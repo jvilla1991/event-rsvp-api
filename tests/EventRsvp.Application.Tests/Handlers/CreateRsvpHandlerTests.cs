@@ -195,5 +195,111 @@ public class CreateRsvpHandlerTests
             It.Is<Rsvp>(rsvp => rsvp.WillAttend == false && rsvp.EventId == TestEventId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Test]
+    public async Task HandleAsync_WhenWillAttendFalseAndProposedTimeProvided_ShouldMapProposedTime()
+    {
+        // Arrange
+        var proposedTime = new DateTime(2026, 6, 15, 14, 0, 0, DateTimeKind.Utc);
+        var request = new CreateRsvpRequest
+        {
+            Name = "Jane Doe",
+            WillAttend = false,
+            ProposedTime = proposedTime
+        };
+
+        var expectedRsvp = new Rsvp
+        {
+            Id = 1,
+            EventId = TestEventId,
+            Name = "Jane Doe",
+            WillAttend = false,
+            ProposedTime = proposedTime,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedRsvp);
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert
+        result.ProposedTime.Should().Be(proposedTime);
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Rsvp>(rsvp => rsvp.ProposedTime == proposedTime),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenWillAttendTrueAndProposedTimeProvided_ShouldIgnoreProposedTime()
+    {
+        // Arrange — ProposedTime should be discarded when WillAttend is true
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            WillAttend = true,
+            ProposedTime = new DateTime(2026, 6, 15, 14, 0, 0, DateTimeKind.Utc)
+        };
+
+        var expectedRsvp = new Rsvp
+        {
+            Id = 1,
+            EventId = TestEventId,
+            Name = "John Doe",
+            WillAttend = true,
+            ProposedTime = null,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedRsvp);
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert — handler clears ProposedTime when WillAttend is true
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Rsvp>(rsvp => rsvp.ProposedTime == null),
+            It.IsAny<CancellationToken>()), Times.Once);
+        result.ProposedTime.Should().BeNull();
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenWillAttendFalseAndNoProposedTime_ShouldReturnNullProposedTime()
+    {
+        // Arrange — declining without proposing a time
+        var request = new CreateRsvpRequest
+        {
+            Name = "Jane Doe",
+            WillAttend = false,
+            ProposedTime = null
+        };
+
+        var expectedRsvp = new Rsvp
+        {
+            Id = 1,
+            EventId = TestEventId,
+            Name = "Jane Doe",
+            WillAttend = false,
+            ProposedTime = null,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedRsvp);
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert
+        result.ProposedTime.Should().BeNull();
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Rsvp>(rsvp => rsvp.ProposedTime == null),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
 
