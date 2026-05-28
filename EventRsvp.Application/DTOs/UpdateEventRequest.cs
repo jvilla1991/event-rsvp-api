@@ -36,4 +36,11 @@ public class UpdateEventRequest
     /// </summary>
     /// <example>456 New Venue, San Francisco, CA 94103</example>
     public string? Address { get; set; }
+
+    /// <summary>
+    /// When true, attendees who select "No" are prompted to propose an alternative time.
+    /// Only settable by admins. Defaults to false.
+    /// </summary>
+    /// <example>false</example>
+    public bool AllowTimeProposal { get; set; }
 }

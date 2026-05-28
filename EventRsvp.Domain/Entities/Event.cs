@@ -9,6 +9,7 @@ public class Event
     public string? Description { get; set; }
     public DateTime? EventDateTime { get; set; }
     public string? Address { get; set; }
+    public bool AllowTimeProposal { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 

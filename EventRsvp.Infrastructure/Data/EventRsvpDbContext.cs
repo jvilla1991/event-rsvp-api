@@ -80,6 +80,10 @@ public class EventRsvpDbContext : DbContext
                 .IsRequired()
                 .HasDefaultValueSql("NOW()");
 
+            entity.Property(e => e.AllowTimeProposal)
+                .IsRequired()
+                .HasDefaultValue(false);
+
             entity.Property(e => e.UpdatedAt)
                 .HasColumnType("timestamp with time zone");
         });
