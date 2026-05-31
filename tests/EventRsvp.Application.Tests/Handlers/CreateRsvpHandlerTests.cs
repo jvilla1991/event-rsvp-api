@@ -14,6 +14,7 @@ public class CreateRsvpHandlerTests
 {
     private Mock<IRsvpRepository> _rsvpRepositoryMock = null!;
     private Mock<IEventRepository> _eventRepositoryMock = null!;
+    private Mock<IInviteRepository> _inviteRepositoryMock = null!;
     private Mock<IEmailService> _emailServiceMock = null!;
     private CreateRsvpHandler _handler = null!;
     private const int TestEventId = 1;
@@ -23,7 +24,21 @@ public class CreateRsvpHandlerTests
     {
         _rsvpRepositoryMock = new Mock<IRsvpRepository>();
         _eventRepositoryMock = new Mock<IEventRepository>();
+        _inviteRepositoryMock = new Mock<IInviteRepository>();
         _emailServiceMock = new Mock<IEmailService>();
+
+        // Default: no existing RSVP for this person
+        _rsvpRepositoryMock
+            .Setup(r => r.GetByEventIdAndNameAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Domain.Entities.Rsvp?)null);
+
+        // Default: no matching invite
+        _inviteRepositoryMock
+            .Setup(r => r.GetByTokenAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Domain.Entities.Invite?)null);
+        _inviteRepositoryMock
+            .Setup(r => r.GetByEventIdAndNameAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Domain.Entities.Invite?)null);
 
         // Setup default event to exist
         _eventRepositoryMock
@@ -33,6 +48,7 @@ public class CreateRsvpHandlerTests
         _handler = new CreateRsvpHandler(
             _rsvpRepositoryMock.Object,
             _eventRepositoryMock.Object,
+            _inviteRepositoryMock.Object,
             _emailServiceMock.Object);
     }
 

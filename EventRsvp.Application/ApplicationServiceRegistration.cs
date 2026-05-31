@@ -27,6 +27,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<GetInvitesByEventIdHandler>();
         services.AddScoped<ViewInviteHandler>();
         services.AddScoped<DeleteInviteHandler>();
+        services.AddScoped<GetAttendanceByEventIdHandler>();
         services.AddValidatorsFromAssembly(typeof(ApplicationServiceRegistration).Assembly);
 
         return services;

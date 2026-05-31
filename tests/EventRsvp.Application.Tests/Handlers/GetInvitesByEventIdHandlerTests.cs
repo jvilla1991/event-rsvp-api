@@ -108,6 +108,7 @@ public class GetInvitesByEventIdHandlerTests
                 EventId = TestEventId,
                 Name = "Charlie",
                 Token = "abc123",
+                Status = Domain.Enums.InviteStatus.Opened,
                 ViewedAt = viewedAt,
                 CreatedAt = DateTime.UtcNow.AddDays(-1)
             }
@@ -126,6 +127,6 @@ public class GetInvitesByEventIdHandlerTests
         result.Name.Should().Be("Charlie");
         result.Token.Should().Be("abc123");
         result.ViewedAt.Should().Be(viewedAt);
-        result.IsViewed.Should().BeTrue();
+        result.Status.Should().Be("Opened");
     }
 }

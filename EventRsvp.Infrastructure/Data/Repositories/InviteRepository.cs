@@ -40,6 +40,13 @@ public class InviteRepository : IInviteRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<Invite?> GetByEventIdAndNameAsync(int eventId, string name, CancellationToken cancellationToken = default)
+    {
+        return await _context.Invites
+            .FirstOrDefaultAsync(i => i.EventId == eventId &&
+                i.Name.ToLower() == name.ToLower(), cancellationToken);
+    }
+
     public async Task<Invite> UpdateAsync(Invite invite, CancellationToken cancellationToken = default)
     {
         _context.Invites.Update(invite);

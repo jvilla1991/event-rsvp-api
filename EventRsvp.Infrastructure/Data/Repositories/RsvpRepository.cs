@@ -20,6 +20,20 @@ public class RsvpRepository : IRsvpRepository
         return rsvp;
     }
 
+    public async Task<Rsvp> UpdateAsync(Rsvp rsvp, CancellationToken cancellationToken = default)
+    {
+        _context.Rsvps.Update(rsvp);
+        await _context.SaveChangesAsync(cancellationToken);
+        return rsvp;
+    }
+
+    public async Task<Rsvp?> GetByEventIdAndNameAsync(int eventId, string name, CancellationToken cancellationToken = default)
+    {
+        return await _context.Rsvps
+            .FirstOrDefaultAsync(r => r.EventId == eventId &&
+                r.Name.ToLower() == name.ToLower(), cancellationToken);
+    }
+
     public async Task<IEnumerable<Rsvp>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Rsvps

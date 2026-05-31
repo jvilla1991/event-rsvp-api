@@ -1,5 +1,6 @@
 using EventRsvp.Application.Handlers;
 using EventRsvp.Domain.Entities;
+using EventRsvp.Domain.Enums;
 using EventRsvp.Domain.Exceptions;
 using EventRsvp.Domain.Interfaces;
 using FluentAssertions;
@@ -24,12 +25,13 @@ public class ViewInviteHandlerTests
         _handler = new ViewInviteHandler(_inviteRepositoryMock.Object);
     }
 
-    private static Invite BuildInvite(string token, DateTime? viewedAt = null) => new()
+    private static Invite BuildInvite(string token, DateTime? viewedAt = null, InviteStatus status = InviteStatus.NotOpened) => new()
     {
         Id = 1,
         EventId = 5,
         Name = "Bob",
         Token = token,
+        Status = status,
         ViewedAt = viewedAt,
         CreatedAt = DateTime.UtcNow.AddDays(-1)
     };
@@ -53,7 +55,7 @@ public class ViewInviteHandlerTests
 
         // Assert
         result.ViewedAt.Should().NotBeNull();
-        result.IsViewed.Should().BeTrue();
+        result.Status.Should().Be("Opened");
     }
 
     [Test]
@@ -78,11 +80,11 @@ public class ViewInviteHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_WhenAlreadyViewed_ShouldNotUpdateViewedAt()
+    public async Task HandleAsync_WhenAlreadyOpened_ShouldNotUpdate()
     {
-        // Arrange
+        // Arrange — invite already has Opened status
         var originalViewedAt = DateTime.UtcNow.AddHours(-2);
-        var invite = BuildInvite(ValidToken, viewedAt: originalViewedAt);
+        var invite = BuildInvite(ValidToken, viewedAt: originalViewedAt, status: InviteStatus.Opened);
 
         _inviteRepositoryMock
             .Setup(r => r.GetByTokenAsync(ValidToken, It.IsAny<CancellationToken>()))

@@ -1,4 +1,5 @@
 using EventRsvp.Application.DTOs;
+using EventRsvp.Domain.Enums;
 using EventRsvp.Domain.Exceptions;
 using EventRsvp.Domain.Interfaces;
 
@@ -6,8 +7,7 @@ namespace EventRsvp.Application.Handlers;
 
 /// <summary>
 /// Public handler — called when the recipient opens their invite link.
-/// Records the first-view timestamp and returns invite details so the
-/// frontend knows which event page to render.
+/// Records the first-view timestamp and advances status to Opened.
 /// </summary>
 public class ViewInviteHandler
 {
@@ -27,9 +27,10 @@ public class ViewInviteHandler
         if (invite == null)
             throw new InvalidInviteException($"Invite with token '{token}' not found.");
 
-        // Only record the first view
-        if (!invite.ViewedAt.HasValue)
+        // Only advance status on first view (don't downgrade Accepted/Declined back to Opened)
+        if (invite.Status == InviteStatus.NotOpened)
         {
+            invite.Status = InviteStatus.Opened;
             invite.ViewedAt = DateTime.UtcNow;
             await _inviteRepository.UpdateAsync(invite, cancellationToken);
         }
@@ -40,6 +41,7 @@ public class ViewInviteHandler
             EventId = invite.EventId,
             Name = invite.Name,
             Token = invite.Token,
+            Status = invite.Status.ToString(),
             ViewedAt = invite.ViewedAt,
             CreatedAt = invite.CreatedAt
         };

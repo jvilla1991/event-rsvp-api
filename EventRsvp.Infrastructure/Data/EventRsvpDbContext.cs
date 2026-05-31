@@ -1,4 +1,5 @@
 using EventRsvp.Domain.Entities;
+using EventRsvp.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Text.Json;
@@ -198,6 +199,10 @@ public class EventRsvpDbContext : DbContext
 
             entity.HasIndex(e => e.Token)
                 .IsUnique();
+
+            entity.Property(e => e.Status)
+                .IsRequired()
+                .HasDefaultValue(InviteStatus.NotOpened);
 
             entity.Property(e => e.ViewedAt)
                 .HasColumnType("timestamp with time zone");
