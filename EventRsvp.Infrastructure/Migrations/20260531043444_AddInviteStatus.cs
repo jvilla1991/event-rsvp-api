@@ -16,6 +16,11 @@ namespace EventRsvp.Infrastructure.Migrations
                 type: "integer",
                 nullable: false,
                 defaultValue: 0);
+
+            // Backfill: any invite that was already opened before this migration
+            // (ViewedAt is set) should be Opened (1), not NotOpened (0).
+            migrationBuilder.Sql(
+                "UPDATE \"Invites\" SET \"Status\" = 1 WHERE \"ViewedAt\" IS NOT NULL;");
         }
 
         /// <inheritdoc />

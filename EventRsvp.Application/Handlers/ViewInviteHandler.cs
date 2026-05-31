@@ -27,11 +27,13 @@ public class ViewInviteHandler
         if (invite == null)
             throw new InvalidInviteException($"Invite with token '{token}' not found.");
 
-        // Only advance status on first view (don't downgrade Accepted/Declined back to Opened)
+        // Only advance status on first view; never downgrade Accepted/Declined back to Opened.
+        // Also preserve a pre-existing ViewedAt (e.g. an invite viewed before the Status
+        // column existed will have ViewedAt set but Status = NotOpened).
         if (invite.Status == InviteStatus.NotOpened)
         {
             invite.Status = InviteStatus.Opened;
-            invite.ViewedAt = DateTime.UtcNow;
+            invite.ViewedAt ??= DateTime.UtcNow;  // keep original timestamp if already stamped
             await _inviteRepository.UpdateAsync(invite, cancellationToken);
         }
 
