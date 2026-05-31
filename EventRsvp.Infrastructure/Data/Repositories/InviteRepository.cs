@@ -50,6 +50,13 @@ public class InviteRepository : IInviteRepository
     public async Task<Invite> UpdateAsync(Invite invite, CancellationToken cancellationToken = default)
     {
         _context.Invites.Update(invite);
+
+        // Explicitly mark Status as modified so EF Core always includes it in the
+        // UPDATE statement. Without this, EF Core's ValueGeneratedOnAdd behaviour
+        // (triggered by HasDefaultValue on int columns) can treat the value 0 as a
+        // sentinel and silently omit it from the generated SQL.
+        _context.Entry(invite).Property(i => i.Status).IsModified = true;
+
         await _context.SaveChangesAsync(cancellationToken);
         return invite;
     }
