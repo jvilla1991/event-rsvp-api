@@ -83,16 +83,6 @@ public class CreateRsvpHandler
                 cancellationToken);
         }
 
-        // Send notification if the attendee proposed an alternative time
-        if (createdRsvp.ProposedTime.HasValue)
-        {
-            await _emailService.SendTimeProposalNotificationAsync(
-                createdRsvp.Name,
-                eventEntity.Title,
-                createdRsvp.ProposedTime.Value,
-                cancellationToken);
-        }
-
         return new RsvpResponse
         {
             Id = rsvp.Id,
