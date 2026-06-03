@@ -28,5 +28,11 @@ public class CreateRsvpRequest
     /// Only meaningful when WillAttend is false.
     /// </summary>
     public DateTime? ProposedTime { get; set; }
+
+    /// <summary>
+    /// Optional invite token from the shareable link. When provided, the matching
+    /// invite's status is updated to Accepted or Declined automatically.
+    /// </summary>
+    public string? InviteToken { get; set; }
 }
 

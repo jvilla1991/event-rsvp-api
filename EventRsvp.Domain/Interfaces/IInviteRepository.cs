@@ -8,6 +8,7 @@ public interface IInviteRepository
     Task<Invite?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<Invite?> GetByTokenAsync(string token, CancellationToken cancellationToken = default);
     Task<IEnumerable<Invite>> GetByEventIdAsync(int eventId, CancellationToken cancellationToken = default);
+    Task<Invite?> GetByEventIdAndNameAsync(int eventId, string name, CancellationToken cancellationToken = default);
     Task<Invite> UpdateAsync(Invite invite, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
 }

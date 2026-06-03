@@ -198,7 +198,7 @@ public class InvitesControllerTests
         invite.EventId.Should().Be(evt.Id);
         invite.Name.Should().Be("Charlie");
         invite.Token.Should().NotBeNullOrWhiteSpace();
-        invite.IsViewed.Should().BeFalse();
+        invite.Status.Should().Be("NotOpened");
         invite.ViewedAt.Should().BeNull();
     }
 
@@ -363,7 +363,7 @@ public class InvitesControllerTests
 
         // Assert
         var result = await response.Content.ReadFromJsonAsync<InviteResponse>();
-        result!.IsViewed.Should().BeTrue();
+        result!.Status.Should().Be("Opened");
         result.ViewedAt.Should().NotBeNull();
     }
 
@@ -397,14 +397,14 @@ public class InvitesControllerTests
 
         // Check it is unviewed before the recipient opens it
         var beforeList = await (await auth.GetAsync(InvitesPath(evt.Id))).Content.ReadFromJsonAsync<List<InviteResponse>>();
-        beforeList!.Single(i => i.Id == invite.Id).IsViewed.Should().BeFalse();
+        beforeList!.Single(i => i.Id == invite.Id).Status.Should().Be("NotOpened");
 
         // Recipient opens the link
         await _client.GetAsync(ViewPath(invite.Token));
 
         // Admin re-checks the list
         var afterList = await (await auth.GetAsync(InvitesPath(evt.Id))).Content.ReadFromJsonAsync<List<InviteResponse>>();
-        afterList!.Single(i => i.Id == invite.Id).IsViewed.Should().BeTrue();
+        afterList!.Single(i => i.Id == invite.Id).Status.Should().Be("Opened");
     }
 
     [Test]

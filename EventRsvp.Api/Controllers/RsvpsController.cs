@@ -15,13 +15,16 @@ public class RsvpsController : ControllerBase
 {
     private readonly CreateRsvpHandler _createRsvpHandler;
     private readonly GetRsvpsByEventIdHandler _getRsvpsByEventIdHandler;
+    private readonly GetAttendanceByEventIdHandler _getAttendanceByEventIdHandler;
 
     public RsvpsController(
         CreateRsvpHandler createRsvpHandler,
-        GetRsvpsByEventIdHandler getRsvpsByEventIdHandler)
+        GetRsvpsByEventIdHandler getRsvpsByEventIdHandler,
+        GetAttendanceByEventIdHandler getAttendanceByEventIdHandler)
     {
         _createRsvpHandler = createRsvpHandler;
         _getRsvpsByEventIdHandler = getRsvpsByEventIdHandler;
+        _getAttendanceByEventIdHandler = getAttendanceByEventIdHandler;
     }
 
     /// <summary>
@@ -69,7 +72,7 @@ public class RsvpsController : ControllerBase
     /// Gets all RSVPs for the specified event
     /// </summary>
     /// <remarks>
-    /// Retrieves all RSVPs (Responses to Invitations) for a specific event. 
+    /// Retrieves all RSVPs (Responses to Invitations) for a specific event.
     /// Returns an empty list if the event has no RSVPs or if the event doesn't exist.
     /// </remarks>
     /// <param name="eventId">The unique identifier of the event</param>
@@ -83,6 +86,33 @@ public class RsvpsController : ControllerBase
         {
             var rsvps = await _getRsvpsByEventIdHandler.HandleAsync(eventId);
             return Ok(rsvps);
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets the unified attendance list for the specified event
+    /// </summary>
+    /// <remarks>
+    /// Returns a combined view of all invited people and direct RSVPs.
+    /// Invited people appear as NotOpened or Opened until they respond,
+    /// then transition to Accepted or Declined. People who RSVP without
+    /// an invite appear directly as Accepted or Declined.
+    /// </remarks>
+    /// <param name="eventId">The unique identifier of the event</param>
+    /// <returns>Unified attendance list for the specified event</returns>
+    /// <response code="200">Returns the attendance list</response>
+    [HttpGet("attendance")]
+    [ProducesResponseType(typeof(IEnumerable<AttendanceResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<AttendanceResponse>>> GetAttendance(int eventId)
+    {
+        try
+        {
+            var attendance = await _getAttendanceByEventIdHandler.HandleAsync(eventId);
+            return Ok(attendance);
         }
         catch
         {

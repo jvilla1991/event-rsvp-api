@@ -43,6 +43,7 @@ public class CreateInviteHandler
         EventId = invite.EventId,
         Name = invite.Name,
         Token = invite.Token,
+        Status = invite.Status.ToString(),
         ViewedAt = invite.ViewedAt,
         CreatedAt = invite.CreatedAt
     };

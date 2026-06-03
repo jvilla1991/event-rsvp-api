@@ -199,6 +199,15 @@ public class EventRsvpDbContext : DbContext
             entity.HasIndex(e => e.Token)
                 .IsUnique();
 
+            // Status is NOT configured with HasDefaultValue() intentionally.
+            // Using HasDefaultValue(0) sets ValueGeneratedOnAdd on the property, which
+            // causes EF Core to treat 0 as a sentinel and exclude Status from UPDATE
+            // statements when the value is 0. The entity initialiser already defaults
+            // Status to NotOpened in C#; no DB-side default is needed.
+            entity.Property(e => e.Status)
+                .IsRequired()
+                .HasConversion<int>();
+
             entity.Property(e => e.ViewedAt)
                 .HasColumnType("timestamp with time zone");
 

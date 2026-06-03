@@ -40,10 +40,35 @@ public class InviteRepository : IInviteRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<Invite?> GetByEventIdAndNameAsync(int eventId, string name, CancellationToken cancellationToken = default)
+    {
+        return await _context.Invites
+            .FirstOrDefaultAsync(i => i.EventId == eventId &&
+                i.Name.ToLower() == name.ToLower(), cancellationToken);
+    }
+
     public async Task<Invite> UpdateAsync(Invite invite, CancellationToken cancellationToken = default)
     {
-        _context.Invites.Update(invite);
-        await _context.SaveChangesAsync(cancellationToken);
+        // Use ExecuteUpdateAsync (direct parameterised SQL) instead of the
+        // change-tracker path. EF Core's sentinel/ValueGeneratedOnAdd logic
+        // for int columns with default values can silently drop the Status
+        // column from the generated UPDATE even when IsModified is forced.
+        // ExecuteUpdateAsync bypasses all of that and always writes every
+        // column we specify.
+        var id       = invite.Id;
+        var name     = invite.Name;
+        var status   = invite.Status;
+        var viewedAt = invite.ViewedAt;
+
+        await _context.Invites
+            .Where(i => i.Id == id)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(i => i.Name,     name)
+                    .SetProperty(i => i.Status,   status)
+                    .SetProperty(i => i.ViewedAt, viewedAt),
+                cancellationToken);
+
         return invite;
     }
 
