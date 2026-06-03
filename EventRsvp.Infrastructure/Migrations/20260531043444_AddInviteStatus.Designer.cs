@@ -3,6 +3,7 @@ using System;
 using EventRsvp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EventRsvp.Infrastructure.Migrations
 {
     [DbContext(typeof(EventRsvpDbContext))]
-    partial class EventRsvpDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260531043444_AddInviteStatus")]
+    partial class AddInviteStatus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -86,7 +89,9 @@ namespace EventRsvp.Infrastructure.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<int>("Status")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("Token")
                         .IsRequired()

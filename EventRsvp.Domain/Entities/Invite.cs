@@ -1,3 +1,4 @@
+using EventRsvp.Domain.Enums;
 using EventRsvp.Domain.Exceptions;
 
 namespace EventRsvp.Domain.Entities;
@@ -17,6 +18,8 @@ public class Invite
     /// Unique token embedded in the shareable link
     /// </summary>
     public string Token { get; set; } = string.Empty;
+
+    public InviteStatus Status { get; set; } = InviteStatus.NotOpened;
 
     /// <summary>
     /// Set when the recipient first opens the invite link; null if not yet viewed

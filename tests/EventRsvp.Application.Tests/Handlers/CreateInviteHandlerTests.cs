@@ -69,7 +69,7 @@ public class CreateInviteHandlerTests
         result.Name.Should().Be("Alice");
         result.Token.Should().Be(saved.Token);
         result.ViewedAt.Should().BeNull();
-        result.IsViewed.Should().BeFalse();
+        result.Status.Should().Be("NotOpened");
     }
 
     [Test]
