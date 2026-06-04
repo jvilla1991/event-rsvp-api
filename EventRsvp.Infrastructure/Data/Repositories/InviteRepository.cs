@@ -49,26 +49,14 @@ public class InviteRepository : IInviteRepository
 
     public async Task<Invite> UpdateAsync(Invite invite, CancellationToken cancellationToken = default)
     {
-        // Use ExecuteUpdateAsync (direct parameterised SQL) instead of the
-        // change-tracker path. EF Core's sentinel/ValueGeneratedOnAdd logic
-        // for int columns with default values can silently drop the Status
-        // column from the generated UPDATE even when IsModified is forced.
-        // ExecuteUpdateAsync bypasses all of that and always writes every
-        // column we specify.
-        var id       = invite.Id;
-        var name     = invite.Name;
-        var status   = invite.Status;
-        var viewedAt = invite.ViewedAt;
-
-        await _context.Invites
-            .Where(i => i.Id == id)
-            .ExecuteUpdateAsync(
-                s => s
-                    .SetProperty(i => i.Name,     name)
-                    .SetProperty(i => i.Status,   status)
-                    .SetProperty(i => i.ViewedAt, viewedAt),
-                cancellationToken);
-
+        // Change-tracker path. This was previously ExecuteUpdateAsync to work around
+        // EF Core's ValueGeneratedOnAdd sentinel dropping Status from UPDATE statements
+        // when it had a DB default of 0. The FixInviteStatusValueGenerated migration
+        // removed that default, so EF Core no longer treats Status=0 as a sentinel and
+        // the standard change-tracker UPDATE includes it correctly.
+        // The change-tracker path also works with the in-memory provider used in tests.
+        _context.Invites.Update(invite);
+        await _context.SaveChangesAsync(cancellationToken);
         return invite;
     }
 
