@@ -194,7 +194,7 @@ jobs:
         run: |
           aws apprunner update-service \
             --service-arn "${{ secrets.APPRUNNER_SERVICE_ARN }}" \
-            --source-configuration "{\"ImageRepository\":{\"ImageIdentifier\":\"$IMAGE\",\"ImageRepositoryType\":\"ECR\",\"ImageConfiguration\":{\"Port\":\"8080\"}}}"
+            --source-configuration "{\"ImageRepository\":{\"ImageIdentifier\":\"$IMAGE\",\"ImageRepositoryType\":\"ECR\"}}"
           echo "App Runner update triggered for image: $IMAGE"
 
       - name: Wait for App Runner deployment
