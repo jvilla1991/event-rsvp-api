@@ -12,8 +12,9 @@ namespace EventRsvp.Application.Tests.Handlers;
 
 /// <summary>
 /// Covers invite-status transitions triggered by the CreateRsvpHandler:
-///   NotOpened / Opened  →  Accepted  (WillAttend = true)
-///   NotOpened / Opened  →  Declined  (WillAttend = false)
+///   NotOpened / Opened  →  Accepted  (Status = Yes)
+///   NotOpened / Opened  →  Declined  (Status = No)
+///   NotOpened / Opened  →  Maybe     (Status = Maybe)
 ///
 /// Edge cases: token-based lookup, name-based lookup, anonymous invites,
 /// upsert answer-change, and no matching invite.
@@ -80,10 +81,13 @@ public class InviteStatusTrackingTests
     };
 
     private static CreateRsvpRequest Accepting(string name, string? token = null) =>
-        new() { Name = name, WillAttend = true, InviteToken = token };
+        new() { Name = name, Status = "Yes", InviteToken = token };
 
     private static CreateRsvpRequest Declining(string name, string? token = null) =>
-        new() { Name = name, WillAttend = false, InviteToken = token };
+        new() { Name = name, Status = "No", InviteToken = token };
+
+    private static CreateRsvpRequest Maybeing(string name, string? token = null) =>
+        new() { Name = name, Status = "Maybe", InviteToken = token };
 
     // ── Status → Accepted ─────────────────────────────────────────────────────
 
@@ -186,6 +190,26 @@ public class InviteStatusTrackingTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // ── Status → Maybe ────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task WhenRsvpIsMaybeAndInviteFoundByName_ShouldSetInviteToMaybe()
+    {
+        // Arrange
+        var invite = BuildInvite("Mona");
+        _inviteRepo
+            .Setup(r => r.GetByEventIdAndNameAsync(EventId, "Mona", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(invite);
+
+        // Act
+        await _handler.HandleAsync(EventId, Maybeing("Mona"));
+
+        // Assert
+        _inviteRepo.Verify(r => r.UpdateAsync(
+            It.Is<Invite>(i => i.Status == InviteStatus.Maybe),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     // ── Name matching ─────────────────────────────────────────────────────────
 
     [Test]
@@ -249,7 +273,7 @@ public class InviteStatusTrackingTests
         // Arrange — person previously declined and is now changing their mind
         var existingRsvp = new Rsvp
         {
-            Id = 99, EventId = EventId, Name = "Jack", WillAttend = false, CreatedAt = DateTime.UtcNow.AddDays(-1)
+            Id = 99, EventId = EventId, Name = "Jack", Status = RsvpStatus.No, CreatedAt = DateTime.UtcNow.AddDays(-1)
         };
         _rsvpRepo
             .Setup(r => r.GetByEventIdAndNameAsync(EventId, "Jack", It.IsAny<CancellationToken>()))
@@ -278,7 +302,7 @@ public class InviteStatusTrackingTests
         // Arrange — person previously accepted and is now declining
         var existingRsvp = new Rsvp
         {
-            Id = 88, EventId = EventId, Name = "Karen", WillAttend = true, CreatedAt = DateTime.UtcNow.AddDays(-2)
+            Id = 88, EventId = EventId, Name = "Karen", Status = RsvpStatus.Yes, CreatedAt = DateTime.UtcNow.AddDays(-2)
         };
         _rsvpRepo
             .Setup(r => r.GetByEventIdAndNameAsync(EventId, "Karen", It.IsAny<CancellationToken>()))

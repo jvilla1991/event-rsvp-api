@@ -37,8 +37,9 @@ public class EventRsvpDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(200);
 
-            entity.Property(e => e.WillAttend)
-                .IsRequired();
+            entity.Property(e => e.Status)
+                .IsRequired()
+                .HasConversion<int>();
 
             entity.Property(e => e.ProposedTime)
                 .HasColumnType("timestamp with time zone");

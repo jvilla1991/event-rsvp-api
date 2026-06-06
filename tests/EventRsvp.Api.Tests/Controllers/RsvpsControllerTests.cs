@@ -22,7 +22,7 @@ public class RsvpsControllerTests
     public void SetUp()
     {
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
-        
+
         var testDbName = $"TestDb_{Guid.NewGuid()}"; // Unique name per test
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
@@ -80,7 +80,7 @@ public class RsvpsControllerTests
         var request = new CreateRsvpRequest
         {
             Name = "John Doe",
-            WillAttend = true
+            Status = "Yes"
         };
 
         // Act
@@ -111,7 +111,31 @@ public class RsvpsControllerTests
         var request = new CreateRsvpRequest
         {
             Name = string.Empty,
-            WillAttend = true
+            Status = "Yes"
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync($"/api/events/{eventId}/rsvps", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task CreateRsvp_WhenStatusInvalid_ShouldReturn400BadRequest()
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<EventRsvpDbContext>();
+        var testEvent = new EventRsvp.Domain.Entities.Event { Title = "Test Event" };
+        dbContext.Events.Add(testEvent);
+        await dbContext.SaveChangesAsync();
+        var eventId = testEvent.Id;
+
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            Status = "Perhaps"
         };
 
         // Act
@@ -128,7 +152,7 @@ public class RsvpsControllerTests
         var request = new CreateRsvpRequest
         {
             Name = "John Doe",
-            WillAttend = true
+            Status = "Yes"
         };
 
         // Act
@@ -155,7 +179,7 @@ public class RsvpsControllerTests
         var createRequest = new CreateRsvpRequest
         {
             Name = "John Doe",
-            WillAttend = true
+            Status = "Yes"
         };
         var createResponse = await _client.PostAsJsonAsync($"/api/events/{eventId}/rsvps", createRequest);
         createResponse.EnsureSuccessStatusCode(); // Ensure the create was successful
@@ -200,16 +224,16 @@ public class RsvpsControllerTests
         // Arrange - Create two events
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<EventRsvpDbContext>();
-        
+
         var event1 = new EventRsvp.Domain.Entities.Event { Title = "Event 1" };
         var event2 = new EventRsvp.Domain.Entities.Event { Title = "Event 2" };
         dbContext.Events.AddRange(event1, event2);
         await dbContext.SaveChangesAsync();
 
         // Create RSVPs for both events
-        var rsvp1Request = new CreateRsvpRequest { Name = "John", WillAttend = true };
-        var rsvp2Request = new CreateRsvpRequest { Name = "Jane", WillAttend = true };
-        
+        var rsvp1Request = new CreateRsvpRequest { Name = "John", Status = "Yes" };
+        var rsvp2Request = new CreateRsvpRequest { Name = "Jane", Status = "Yes" };
+
         await _client.PostAsJsonAsync($"/api/events/{event1.Id}/rsvps", rsvp1Request);
         await _client.PostAsJsonAsync($"/api/events/{event2.Id}/rsvps", rsvp2Request);
 
@@ -220,10 +244,10 @@ public class RsvpsControllerTests
         // Assert
         response1.StatusCode.Should().Be(HttpStatusCode.OK);
         response2.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         var result1 = await response1.Content.ReadFromJsonAsync<List<RsvpResponse>>();
         var result2 = await response2.Content.ReadFromJsonAsync<List<RsvpResponse>>();
-        
+
         result1!.Should().HaveCount(1);
         result1[0].Name.Should().Be("John");
         result2!.Should().HaveCount(1);
@@ -231,7 +255,7 @@ public class RsvpsControllerTests
     }
 
     [Test]
-    public async Task CreateRsvp_WhenWillAttendFalseWithProposedTime_ShouldReturn201AndStoreProposedTime()
+    public async Task CreateRsvp_WhenStatusNoWithProposedTime_ShouldReturn201AndStoreProposedTime()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
@@ -245,7 +269,7 @@ public class RsvpsControllerTests
         var request = new CreateRsvpRequest
         {
             Name = "Jane Doe",
-            WillAttend = false,
+            Status = "No",
             ProposedTime = proposedTime
         };
 
@@ -256,14 +280,44 @@ public class RsvpsControllerTests
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var result = await response.Content.ReadFromJsonAsync<RsvpResponse>();
         result.Should().NotBeNull();
-        result!.WillAttend.Should().BeFalse();
+        result!.Status.Should().Be("No");
         result.ProposedTime.Should().Be(proposedTime);
     }
 
     [Test]
-    public async Task CreateRsvp_WhenWillAttendTrueWithProposedTime_ShouldIgnoreProposedTime()
+    public async Task CreateRsvp_WhenStatusMaybeWithProposedTime_ShouldReturn201AndStoreProposedTime()
     {
-        // Arrange — ProposedTime should be ignored when WillAttend is true
+        // Arrange — a Maybe responder is allowed to suggest a time
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<EventRsvpDbContext>();
+        var testEvent = new EventRsvp.Domain.Entities.Event { Title = "Test Event" };
+        dbContext.Events.Add(testEvent);
+        await dbContext.SaveChangesAsync();
+        var eventId = testEvent.Id;
+
+        var proposedTime = new DateTime(2026, 7, 1, 18, 0, 0, DateTimeKind.Utc);
+        var request = new CreateRsvpRequest
+        {
+            Name = "Mona Doe",
+            Status = "Maybe",
+            ProposedTime = proposedTime
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync($"/api/events/{eventId}/rsvps", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<RsvpResponse>();
+        result.Should().NotBeNull();
+        result!.Status.Should().Be("Maybe");
+        result.ProposedTime.Should().Be(proposedTime);
+    }
+
+    [Test]
+    public async Task CreateRsvp_WhenStatusYesWithProposedTime_ShouldIgnoreProposedTime()
+    {
+        // Arrange — ProposedTime should be ignored when the answer is Yes
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<EventRsvpDbContext>();
         var testEvent = new EventRsvp.Domain.Entities.Event { Title = "Test Event" };
@@ -274,7 +328,7 @@ public class RsvpsControllerTests
         var request = new CreateRsvpRequest
         {
             Name = "John Doe",
-            WillAttend = true,
+            Status = "Yes",
             ProposedTime = new DateTime(2026, 7, 1, 18, 0, 0, DateTimeKind.Utc)
         };
 
@@ -285,12 +339,12 @@ public class RsvpsControllerTests
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var result = await response.Content.ReadFromJsonAsync<RsvpResponse>();
         result.Should().NotBeNull();
-        result!.WillAttend.Should().BeTrue();
+        result!.Status.Should().Be("Yes");
         result.ProposedTime.Should().BeNull();
     }
 
     [Test]
-    public async Task CreateRsvp_WhenWillAttendFalseWithNoProposedTime_ShouldReturn201WithNullProposedTime()
+    public async Task CreateRsvp_WhenStatusNoWithNoProposedTime_ShouldReturn201WithNullProposedTime()
     {
         // Arrange — declining with no proposed time
         using var scope = _factory.Services.CreateScope();
@@ -303,7 +357,7 @@ public class RsvpsControllerTests
         var request = new CreateRsvpRequest
         {
             Name = "Jane Doe",
-            WillAttend = false,
+            Status = "No",
             ProposedTime = null
         };
 
@@ -314,8 +368,7 @@ public class RsvpsControllerTests
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var result = await response.Content.ReadFromJsonAsync<RsvpResponse>();
         result.Should().NotBeNull();
-        result!.WillAttend.Should().BeFalse();
+        result!.Status.Should().Be("No");
         result.ProposedTime.Should().BeNull();
     }
 }
-

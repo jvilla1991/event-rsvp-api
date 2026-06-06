@@ -1,3 +1,4 @@
+using EventRsvp.Domain.Enums;
 using EventRsvp.Domain.Exceptions;
 
 namespace EventRsvp.Domain.Entities;
@@ -7,7 +8,11 @@ public class Rsvp
     public int Id { get; set; }
     public int EventId { get; set; }
     public string Name { get; set; } = string.Empty;
-    public bool WillAttend { get; set; }
+
+    /// <summary>
+    /// Whether the person is attending: Yes, No, or Maybe.
+    /// </summary>
+    public RsvpStatus Status { get; set; } = RsvpStatus.Yes;
 
     /// <summary>
     /// Optional time proposed by the attendee when they cannot make the original time

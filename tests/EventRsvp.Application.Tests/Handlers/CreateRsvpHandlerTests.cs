@@ -2,6 +2,7 @@ using EventRsvp.Application.DTOs;
 using EventRsvp.Application.Handlers;
 using EventRsvp.Application.Services;
 using EventRsvp.Domain.Entities;
+using EventRsvp.Domain.Enums;
 using EventRsvp.Domain.Interfaces;
 using FluentAssertions;
 using Moq;
@@ -59,7 +60,7 @@ public class CreateRsvpHandlerTests
         var request = new CreateRsvpRequest
         {
             Name = "John Doe",
-            WillAttend = true
+            Status = "Yes"
         };
 
         var expectedRsvp = new Rsvp
@@ -67,7 +68,7 @@ public class CreateRsvpHandlerTests
             Id = 1,
             EventId = TestEventId,
             Name = "John Doe",
-            WillAttend = true,
+            Status = RsvpStatus.Yes,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -81,7 +82,7 @@ public class CreateRsvpHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Name.Should().Be("John Doe");
-        result.WillAttend.Should().BeTrue();
+        result.Status.Should().Be("Yes");
         _rsvpRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()), Times.Once);
         _eventRepositoryMock.Verify(r => r.GetByIdAsync(TestEventId, It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -93,7 +94,7 @@ public class CreateRsvpHandlerTests
         var request = new CreateRsvpRequest
         {
             Name = "  John Doe  ",
-            WillAttend = true
+            Status = "Yes"
         };
 
         var expectedRsvp = new Rsvp
@@ -101,7 +102,7 @@ public class CreateRsvpHandlerTests
             Id = 1,
             EventId = TestEventId,
             Name = "John Doe",
-            WillAttend = true,
+            Status = RsvpStatus.Yes,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -125,12 +126,28 @@ public class CreateRsvpHandlerTests
         var request = new CreateRsvpRequest
         {
             Name = string.Empty,
-            WillAttend = true
+            Status = "Yes"
         };
 
         // Act & Assert
         var act = async () => await _handler.HandleAsync(TestEventId, request);
         await act.Should().ThrowAsync<Exception>();
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenStatusIsInvalid_ShouldThrowException()
+    {
+        // Arrange
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            Status = "Perhaps"
+        };
+
+        // Act & Assert
+        var act = async () => await _handler.HandleAsync(TestEventId, request);
+        await act.Should().ThrowAsync<Domain.Exceptions.InvalidRsvpException>()
+            .WithMessage("*Invalid RSVP status*");
     }
 
     [Test]
@@ -140,7 +157,7 @@ public class CreateRsvpHandlerTests
         var request = new CreateRsvpRequest
         {
             Name = "John Doe",
-            WillAttend = true
+            Status = "Yes"
         };
 
         _eventRepositoryMock
@@ -160,7 +177,7 @@ public class CreateRsvpHandlerTests
         var request = new CreateRsvpRequest
         {
             Name = "John Doe",
-            WillAttend = true
+            Status = "Yes"
         };
 
         var expectedRsvp = new Rsvp
@@ -168,7 +185,7 @@ public class CreateRsvpHandlerTests
             Id = 1,
             EventId = TestEventId,
             Name = "John Doe",
-            WillAttend = true,
+            Status = RsvpStatus.Yes,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -186,13 +203,13 @@ public class CreateRsvpHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_WhenWillAttendIsFalse_ShouldSetWillAttendToFalse()
+    public async Task HandleAsync_WhenStatusIsNo_ShouldSetStatusToNo()
     {
         // Arrange
         var request = new CreateRsvpRequest
         {
             Name = "John Doe",
-            WillAttend = false
+            Status = "No"
         };
 
         var expectedRsvp = new Rsvp
@@ -200,7 +217,7 @@ public class CreateRsvpHandlerTests
             Id = 1,
             EventId = TestEventId,
             Name = "John Doe",
-            WillAttend = false,
+            Status = RsvpStatus.No,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -212,21 +229,80 @@ public class CreateRsvpHandlerTests
         var result = await _handler.HandleAsync(TestEventId, request);
 
         // Assert
-        result.WillAttend.Should().BeFalse();
+        result.Status.Should().Be("No");
         _rsvpRepositoryMock.Verify(r => r.AddAsync(
-            It.Is<Rsvp>(rsvp => rsvp.WillAttend == false && rsvp.EventId == TestEventId),
+            It.Is<Rsvp>(rsvp => rsvp.Status == RsvpStatus.No && rsvp.EventId == TestEventId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
-    public async Task HandleAsync_WhenWillAttendFalseAndProposedTimeProvided_ShouldMapProposedTime()
+    public async Task HandleAsync_WhenStatusIsMaybe_ShouldSetStatusToMaybe()
+    {
+        // Arrange
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            Status = "maybe" // case-insensitive
+        };
+
+        var expectedRsvp = new Rsvp
+        {
+            Id = 1,
+            EventId = TestEventId,
+            Name = "John Doe",
+            Status = RsvpStatus.Maybe,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedRsvp);
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert
+        result.Status.Should().Be("Maybe");
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Rsvp>(rsvp => rsvp.Status == RsvpStatus.Maybe && rsvp.EventId == TestEventId),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenMaybeWithProposedTime_ShouldKeepProposedTime()
+    {
+        // Arrange — Maybe responders are allowed to suggest an alternative time
+        var proposedTime = new DateTime(2026, 6, 15, 14, 0, 0, DateTimeKind.Utc);
+        var request = new CreateRsvpRequest
+        {
+            Name = "Jane Doe",
+            Status = "Maybe",
+            ProposedTime = proposedTime
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Rsvp { Id = 1, EventId = TestEventId, Name = "Jane Doe", Status = RsvpStatus.Maybe, ProposedTime = proposedTime });
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert
+        result.ProposedTime.Should().Be(proposedTime);
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Rsvp>(rsvp => rsvp.ProposedTime == proposedTime),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenStatusNoAndProposedTimeProvided_ShouldMapProposedTime()
     {
         // Arrange
         var proposedTime = new DateTime(2026, 6, 15, 14, 0, 0, DateTimeKind.Utc);
         var request = new CreateRsvpRequest
         {
             Name = "Jane Doe",
-            WillAttend = false,
+            Status = "No",
             ProposedTime = proposedTime
         };
 
@@ -235,7 +311,7 @@ public class CreateRsvpHandlerTests
             Id = 1,
             EventId = TestEventId,
             Name = "Jane Doe",
-            WillAttend = false,
+            Status = RsvpStatus.No,
             ProposedTime = proposedTime,
             CreatedAt = DateTime.UtcNow
         };
@@ -255,13 +331,13 @@ public class CreateRsvpHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_WhenWillAttendTrueAndProposedTimeProvided_ShouldIgnoreProposedTime()
+    public async Task HandleAsync_WhenStatusYesAndProposedTimeProvided_ShouldIgnoreProposedTime()
     {
-        // Arrange — ProposedTime should be discarded when WillAttend is true
+        // Arrange — ProposedTime should be discarded when the answer is a definite Yes
         var request = new CreateRsvpRequest
         {
             Name = "John Doe",
-            WillAttend = true,
+            Status = "Yes",
             ProposedTime = new DateTime(2026, 6, 15, 14, 0, 0, DateTimeKind.Utc)
         };
 
@@ -270,7 +346,7 @@ public class CreateRsvpHandlerTests
             Id = 1,
             EventId = TestEventId,
             Name = "John Doe",
-            WillAttend = true,
+            Status = RsvpStatus.Yes,
             ProposedTime = null,
             CreatedAt = DateTime.UtcNow
         };
@@ -282,7 +358,7 @@ public class CreateRsvpHandlerTests
         // Act
         var result = await _handler.HandleAsync(TestEventId, request);
 
-        // Assert — handler clears ProposedTime when WillAttend is true
+        // Assert — handler clears ProposedTime when the answer is Yes
         _rsvpRepositoryMock.Verify(r => r.AddAsync(
             It.Is<Rsvp>(rsvp => rsvp.ProposedTime == null),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -294,11 +370,11 @@ public class CreateRsvpHandlerTests
     {
         // Arrange
         var proposedTime = new DateTime(2026, 6, 15, 14, 0, 0, DateTimeKind.Utc);
-        var request = new CreateRsvpRequest { Name = "Jane Doe", WillAttend = false, ProposedTime = proposedTime };
+        var request = new CreateRsvpRequest { Name = "Jane Doe", Status = "No", ProposedTime = proposedTime };
 
         _rsvpRepositoryMock
             .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Rsvp { Id = 1, EventId = TestEventId, Name = "Jane Doe", WillAttend = false, ProposedTime = proposedTime });
+            .ReturnsAsync(new Rsvp { Id = 1, EventId = TestEventId, Name = "Jane Doe", Status = RsvpStatus.No, ProposedTime = proposedTime });
 
         // Act
         await _handler.HandleAsync(TestEventId, request);
@@ -312,11 +388,11 @@ public class CreateRsvpHandlerTests
     public async Task HandleAsync_WhenNoProposedTime_ShouldNotSendEmailNotification()
     {
         // Arrange — plain decline with no proposed time
-        var request = new CreateRsvpRequest { Name = "Jane Doe", WillAttend = false, ProposedTime = null };
+        var request = new CreateRsvpRequest { Name = "Jane Doe", Status = "No", ProposedTime = null };
 
         _rsvpRepositoryMock
             .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Rsvp { Id = 1, EventId = TestEventId, Name = "Jane Doe", WillAttend = false, ProposedTime = null });
+            .ReturnsAsync(new Rsvp { Id = 1, EventId = TestEventId, Name = "Jane Doe", Status = RsvpStatus.No, ProposedTime = null });
 
         // Act
         await _handler.HandleAsync(TestEventId, request);
@@ -327,14 +403,14 @@ public class CreateRsvpHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_WhenWillAttendTrue_ShouldNotSendEmailNotification()
+    public async Task HandleAsync_WhenStatusYes_ShouldNotSendEmailNotification()
     {
         // Arrange
-        var request = new CreateRsvpRequest { Name = "John Doe", WillAttend = true };
+        var request = new CreateRsvpRequest { Name = "John Doe", Status = "Yes" };
 
         _rsvpRepositoryMock
             .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Rsvp { Id = 1, EventId = TestEventId, Name = "John Doe", WillAttend = true, ProposedTime = null });
+            .ReturnsAsync(new Rsvp { Id = 1, EventId = TestEventId, Name = "John Doe", Status = RsvpStatus.Yes, ProposedTime = null });
 
         // Act
         await _handler.HandleAsync(TestEventId, request);
@@ -345,13 +421,13 @@ public class CreateRsvpHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_WhenWillAttendFalseAndNoProposedTime_ShouldReturnNullProposedTime()
+    public async Task HandleAsync_WhenStatusNoAndNoProposedTime_ShouldReturnNullProposedTime()
     {
         // Arrange — declining without proposing a time
         var request = new CreateRsvpRequest
         {
             Name = "Jane Doe",
-            WillAttend = false,
+            Status = "No",
             ProposedTime = null
         };
 
@@ -360,7 +436,7 @@ public class CreateRsvpHandlerTests
             Id = 1,
             EventId = TestEventId,
             Name = "Jane Doe",
-            WillAttend = false,
+            Status = RsvpStatus.No,
             ProposedTime = null,
             CreatedAt = DateTime.UtcNow
         };
@@ -379,4 +455,3 @@ public class CreateRsvpHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }
-

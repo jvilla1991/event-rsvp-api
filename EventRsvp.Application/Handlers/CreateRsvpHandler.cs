@@ -31,8 +31,16 @@ public class CreateRsvpHandler
         if (eventEntity == null)
             throw new Domain.Exceptions.InvalidRsvpException($"Event with ID {eventId} not found.");
 
+        if (!Enum.TryParse<RsvpStatus>(request.Status, ignoreCase: true, out var status)
+            || !Enum.IsDefined(typeof(RsvpStatus), status))
+        {
+            throw new Domain.Exceptions.InvalidRsvpException(
+                $"Invalid RSVP status '{request.Status}'. Expected Yes, No, or Maybe.");
+        }
+
         var trimmedName = request.Name.Trim();
-        var proposedTime = request.WillAttend ? null : request.ProposedTime;
+        // A proposed time only makes sense when the person is not a definite Yes.
+        var proposedTime = status == RsvpStatus.Yes ? null : request.ProposedTime;
 
         // Upsert: update existing RSVP for this person if one already exists
         var existing = await _rsvpRepository.GetByEventIdAndNameAsync(eventId, trimmedName, cancellationToken);
@@ -40,7 +48,7 @@ public class CreateRsvpHandler
         Rsvp rsvp;
         if (existing != null)
         {
-            existing.WillAttend = request.WillAttend;
+            existing.Status = status;
             existing.ProposedTime = proposedTime;
             rsvp = await _rsvpRepository.UpdateAsync(existing, cancellationToken);
         }
@@ -50,7 +58,7 @@ public class CreateRsvpHandler
             {
                 EventId = eventId,
                 Name = trimmedName,
-                WillAttend = request.WillAttend,
+                Status = status,
                 ProposedTime = proposedTime,
                 CreatedAt = DateTime.UtcNow
             };
@@ -69,7 +77,7 @@ public class CreateRsvpHandler
 
         if (invite != null)
         {
-            invite.Status = request.WillAttend ? InviteStatus.Accepted : InviteStatus.Declined;
+            invite.Status = ToInviteStatus(status);
             await _inviteRepository.UpdateAsync(invite, cancellationToken);
         }
 
@@ -87,9 +95,20 @@ public class CreateRsvpHandler
         {
             Id = rsvp.Id,
             Name = rsvp.Name,
-            WillAttend = rsvp.WillAttend,
+            Status = rsvp.Status.ToString(),
             ProposedTime = rsvp.ProposedTime,
             CreatedAt = rsvp.CreatedAt
         };
     }
+
+    /// <summary>
+    /// Maps an attendee's RSVP response onto the invite lifecycle status.
+    /// </summary>
+    private static InviteStatus ToInviteStatus(RsvpStatus status) => status switch
+    {
+        RsvpStatus.Yes => InviteStatus.Accepted,
+        RsvpStatus.No => InviteStatus.Declined,
+        RsvpStatus.Maybe => InviteStatus.Maybe,
+        _ => InviteStatus.Opened
+    };
 }
