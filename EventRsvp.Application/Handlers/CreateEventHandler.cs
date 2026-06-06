@@ -22,6 +22,7 @@ public class CreateEventHandler
             EventDateTime = request.EventDateTime,
             Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
             AllowTimeProposal = request.AllowTimeProposal,
+            AllowGuestPolls = request.AllowGuestPolls,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -37,6 +38,7 @@ public class CreateEventHandler
             EventDateTime = createdEvent.EventDateTime,
             Address = createdEvent.Address,
             AllowTimeProposal = createdEvent.AllowTimeProposal,
+            AllowGuestPolls = createdEvent.AllowGuestPolls,
             CreatedAt = createdEvent.CreatedAt,
             UpdatedAt = createdEvent.UpdatedAt
         };

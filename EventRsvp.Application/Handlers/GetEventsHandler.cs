@@ -24,6 +24,7 @@ public class GetEventsHandler
             EventDateTime = e.EventDateTime,
             Address = e.Address,
             AllowTimeProposal = e.AllowTimeProposal,
+            AllowGuestPolls = e.AllowGuestPolls,
             CreatedAt = e.CreatedAt,
             UpdatedAt = e.UpdatedAt
         });
