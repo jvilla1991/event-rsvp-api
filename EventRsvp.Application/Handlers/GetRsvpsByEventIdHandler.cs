@@ -22,7 +22,8 @@ public class GetRsvpsByEventIdHandler
             {
                 Id = r.Id,
                 Name = r.Name,
-                WillAttend = r.WillAttend,
+                Status = r.Status.ToString(),
+                ProposedTime = r.ProposedTime,
                 CreatedAt = r.CreatedAt
             });
     }

@@ -6,7 +6,7 @@ namespace EventRsvp.Application.DTOs;
 /// <example>
 /// {
 ///   "name": "John Doe",
-///   "willAttend": true
+///   "status": "Yes"
 /// }
 /// </example>
 public class CreateRsvpRequest
@@ -18,14 +18,14 @@ public class CreateRsvpRequest
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Whether the person will attend the event (default: true)
+    /// The attendance response: "Yes", "No", or "Maybe" (case-insensitive, default: "Yes").
     /// </summary>
-    /// <example>true</example>
-    public bool WillAttend { get; set; } = true;
+    /// <example>Yes</example>
+    public string Status { get; set; } = "Yes";
 
     /// <summary>
-    /// Optional alternative time proposed by the person when they cannot attend.
-    /// Only meaningful when WillAttend is false.
+    /// Optional alternative time proposed by the person.
+    /// Only meaningful when Status is "No" or "Maybe".
     /// </summary>
     public DateTime? ProposedTime { get; set; }
 

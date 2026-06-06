@@ -1,4 +1,5 @@
 using EventRsvp.Domain.Entities;
+using EventRsvp.Domain.Enums;
 using EventRsvp.Domain.Exceptions;
 using FluentAssertions;
 using NUnit.Framework;
@@ -16,7 +17,7 @@ public class RsvpTests
         {
             EventId = 0,
             Name = "John Doe",
-            WillAttend = true
+            Status = RsvpStatus.Yes
         };
 
         // Act & Assert
@@ -33,7 +34,7 @@ public class RsvpTests
         {
             EventId = -1,
             Name = "John Doe",
-            WillAttend = true
+            Status = RsvpStatus.Yes
         };
 
         // Act & Assert
@@ -50,7 +51,7 @@ public class RsvpTests
         {
             EventId = 1,
             Name = string.Empty,
-            WillAttend = true
+            Status = RsvpStatus.Yes
         };
 
         // Act & Assert
@@ -67,7 +68,7 @@ public class RsvpTests
         {
             EventId = 1,
             Name = "   ",
-            WillAttend = true
+            Status = RsvpStatus.Yes
         };
 
         // Act & Assert
@@ -84,7 +85,7 @@ public class RsvpTests
         {
             EventId = 1,
             Name = "John Doe",
-            WillAttend = true
+            Status = RsvpStatus.Yes
         };
 
         // Act & Assert
@@ -100,7 +101,7 @@ public class RsvpTests
         {
             EventId = 1,
             Name = "John Doe",
-            WillAttend = false
+            Status = RsvpStatus.No
         };
 
         // Act & Assert
