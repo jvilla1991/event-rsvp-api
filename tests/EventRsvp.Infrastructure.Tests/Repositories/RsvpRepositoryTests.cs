@@ -1,4 +1,5 @@
 using EventRsvp.Domain.Entities;
+using EventRsvp.Domain.Enums;
 using EventRsvp.Infrastructure.Data;
 using EventRsvp.Infrastructure.Data.Repositories;
 using FluentAssertions;
@@ -38,7 +39,7 @@ public class RsvpRepositoryTests
         {
             EventId = 1,
             Name = "John Doe",
-            WillAttend = true,
+            Status = RsvpStatus.Yes,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -56,8 +57,8 @@ public class RsvpRepositoryTests
     public async Task GetAllAsync_WhenRsvpsExist_ShouldReturnAllRsvps()
     {
         // Arrange
-        var rsvp1 = new Rsvp { EventId = 1, Name = "John", WillAttend = true, CreatedAt = DateTime.UtcNow.AddHours(-2) };
-        var rsvp2 = new Rsvp { EventId = 1, Name = "Jane", WillAttend = true, CreatedAt = DateTime.UtcNow.AddHours(-1) };
+        var rsvp1 = new Rsvp { EventId = 1, Name = "John", Status = RsvpStatus.Yes, CreatedAt = DateTime.UtcNow.AddHours(-2) };
+        var rsvp2 = new Rsvp { EventId = 1, Name = "Jane", Status = RsvpStatus.Yes, CreatedAt = DateTime.UtcNow.AddHours(-1) };
         
         _context.Rsvps.AddRange(rsvp1, rsvp2);
         await _context.SaveChangesAsync();

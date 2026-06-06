@@ -1,5 +1,6 @@
 using EventRsvp.Application.Handlers;
 using EventRsvp.Domain.Entities;
+using EventRsvp.Domain.Enums;
 using EventRsvp.Domain.Exceptions;
 using EventRsvp.Domain.Interfaces;
 using FluentAssertions;
@@ -120,7 +121,7 @@ public class DeleteEventHandlerTests
         var eventWithRsvps = new Event { Id = ValidEventId, Title = "Test Event" };
         var rsvps = new List<Rsvp>
         {
-            new Rsvp { Id = 1, EventId = ValidEventId, Name = "John Doe", WillAttend = true }
+            new Rsvp { Id = 1, EventId = ValidEventId, Name = "John Doe", Status = RsvpStatus.Yes }
         };
         
         _eventRepositoryMock

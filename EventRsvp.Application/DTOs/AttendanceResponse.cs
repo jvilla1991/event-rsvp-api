@@ -6,14 +6,14 @@ public class AttendanceResponse
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// NotOpened, Opened, Accepted, or Declined
+    /// NotOpened, Opened, Accepted, Declined, or Maybe
     /// </summary>
     public string Status { get; set; } = string.Empty;
 
     /// <summary>
-    /// True = attending, false = not attending, null = not yet responded
+    /// The attendee's response: "Yes", "No", "Maybe", or null if not yet responded.
     /// </summary>
-    public bool? WillAttend { get; set; }
+    public string? Response { get; set; }
 
     public DateTime? ProposedTime { get; set; }
 

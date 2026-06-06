@@ -4,7 +4,12 @@ public class RsvpResponse
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
-    public bool WillAttend { get; set; }
+
+    /// <summary>
+    /// The attendance response: "Yes", "No", or "Maybe".
+    /// </summary>
+    public string Status { get; set; } = "Yes";
+
     public DateTime? ProposedTime { get; set; }
     public DateTime CreatedAt { get; set; }
 }

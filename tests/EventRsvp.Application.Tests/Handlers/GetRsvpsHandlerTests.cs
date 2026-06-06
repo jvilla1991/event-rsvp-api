@@ -1,6 +1,7 @@
 using EventRsvp.Application.DTOs;
 using EventRsvp.Application.Handlers;
 using EventRsvp.Domain.Entities;
+using EventRsvp.Domain.Enums;
 using EventRsvp.Domain.Interfaces;
 using FluentAssertions;
 using Moq;
@@ -69,7 +70,7 @@ public class GetRsvpsHandlerTests
         {
             Id = 1,
             Name = "John Doe",
-            WillAttend = true,
+            Status = RsvpStatus.Yes,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -85,7 +86,7 @@ public class GetRsvpsHandlerTests
         result[0].Should().BeOfType<RsvpResponse>();
         result[0].Id.Should().Be(1);
         result[0].Name.Should().Be("John Doe");
-        result[0].WillAttend.Should().BeTrue();
+        result[0].Status.Should().Be("Yes");
     }
 }
 

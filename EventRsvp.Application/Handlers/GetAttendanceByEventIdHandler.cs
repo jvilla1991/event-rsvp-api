@@ -29,16 +29,18 @@ public class GetAttendanceByEventIdHandler
             if (!string.IsNullOrWhiteSpace(invite.Name))
                 invitedNames.Add(invite.Name);
 
-            bool? willAttend = null;
+            string? response = null;
             DateTime? proposedTime = null;
 
-            if (invite.Status == InviteStatus.Accepted || invite.Status == InviteStatus.Declined)
+            if (invite.Status == InviteStatus.Accepted
+                || invite.Status == InviteStatus.Declined
+                || invite.Status == InviteStatus.Maybe)
             {
                 var rsvp = rsvps.FirstOrDefault(r =>
                     string.Equals(r.Name, invite.Name, StringComparison.OrdinalIgnoreCase));
                 if (rsvp != null)
                 {
-                    willAttend = rsvp.WillAttend;
+                    response = rsvp.Status.ToString();
                     proposedTime = rsvp.ProposedTime;
                 }
             }
@@ -48,7 +50,7 @@ public class GetAttendanceByEventIdHandler
                 Id = invite.Id,
                 Name = invite.Name,
                 Status = invite.Status.ToString(),
-                WillAttend = willAttend,
+                Response = response,
                 ProposedTime = proposedTime,
                 Source = "invite",
                 CreatedAt = invite.CreatedAt
@@ -64,8 +66,8 @@ public class GetAttendanceByEventIdHandler
                 {
                     Id = rsvp.Id,
                     Name = rsvp.Name,
-                    Status = rsvp.WillAttend ? "Accepted" : "Declined",
-                    WillAttend = rsvp.WillAttend,
+                    Status = ToAttendanceStatus(rsvp.Status),
+                    Response = rsvp.Status.ToString(),
                     ProposedTime = rsvp.ProposedTime,
                     Source = "rsvp",
                     CreatedAt = rsvp.CreatedAt
@@ -75,4 +77,15 @@ public class GetAttendanceByEventIdHandler
 
         return result.OrderByDescending(r => r.CreatedAt);
     }
+
+    /// <summary>
+    /// Maps a walk-in RSVP response onto the same lifecycle labels used for invites.
+    /// </summary>
+    private static string ToAttendanceStatus(RsvpStatus status) => status switch
+    {
+        RsvpStatus.Yes => InviteStatus.Accepted.ToString(),
+        RsvpStatus.No => InviteStatus.Declined.ToString(),
+        RsvpStatus.Maybe => InviteStatus.Maybe.ToString(),
+        _ => InviteStatus.Opened.ToString()
+    };
 }
