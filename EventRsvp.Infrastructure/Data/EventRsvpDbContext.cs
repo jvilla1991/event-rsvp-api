@@ -85,6 +85,10 @@ public class EventRsvpDbContext : DbContext
                 .IsRequired()
                 .HasDefaultValue(false);
 
+            entity.Property(e => e.AllowGuestPolls)
+                .IsRequired()
+                .HasDefaultValue(false);
+
             entity.Property(e => e.UpdatedAt)
                 .HasColumnType("timestamp with time zone");
         });

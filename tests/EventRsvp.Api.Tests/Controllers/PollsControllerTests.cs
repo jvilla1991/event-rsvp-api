@@ -204,6 +204,33 @@ public class PollsControllerTests
     }
 
     [Test]
+    public async Task CreatePoll_WhenGuestAndGuestPollsEnabled_ShouldReturn201()
+    {
+        // Arrange — admin creates an event that allows guest polls
+        var token = await GetAdminTokenAsync();
+        using var auth = CreateAuthenticatedClient(token);
+        var createEventResponse = await auth.PostAsJsonAsync(EventsApiPath, new CreateEventRequest
+        {
+            Title = "Open Poll Event",
+            AllowGuestPolls = true
+        });
+        createEventResponse.EnsureSuccessStatusCode();
+        var evt = (await createEventResponse.Content.ReadFromJsonAsync<EventResponse>())!;
+
+        // Act — an unauthenticated guest creates a poll
+        var response = await _client.PostAsJsonAsync(PollsPath(evt.Id), new CreatePollRequest
+        {
+            Question = "Pizza or tacos?",
+            Options = new List<string> { "Pizza", "Tacos" }
+        });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var poll = await response.Content.ReadFromJsonAsync<PollResponse>();
+        poll!.Question.Should().Be("Pizza or tacos?");
+    }
+
+    [Test]
     public async Task CreatePoll_WhenEventDoesNotExist_ShouldReturn404()
     {
         // Arrange

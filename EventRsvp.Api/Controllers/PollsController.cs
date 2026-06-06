@@ -20,6 +20,7 @@ public class PollsController : ControllerBase
     private readonly DeletePollHandler _deletePollHandler;
     private readonly SubmitPollVoteHandler _submitPollVoteHandler;
     private readonly GetPollResultsHandler _getPollResultsHandler;
+    private readonly GetEventHandler _getEventHandler;
 
     public PollsController(
         GetPollsByEventIdHandler getPollsByEventIdHandler,
@@ -27,7 +28,8 @@ public class PollsController : ControllerBase
         UpdatePollHandler updatePollHandler,
         DeletePollHandler deletePollHandler,
         SubmitPollVoteHandler submitPollVoteHandler,
-        GetPollResultsHandler getPollResultsHandler)
+        GetPollResultsHandler getPollResultsHandler,
+        GetEventHandler getEventHandler)
     {
         _getPollsByEventIdHandler = getPollsByEventIdHandler;
         _createPollHandler = createPollHandler;
@@ -35,6 +37,7 @@ public class PollsController : ControllerBase
         _deletePollHandler = deletePollHandler;
         _submitPollVoteHandler = submitPollVoteHandler;
         _getPollResultsHandler = getPollResultsHandler;
+        _getEventHandler = getEventHandler;
     }
 
     /// <summary>
@@ -72,16 +75,17 @@ public class PollsController : ControllerBase
     /// Create a new poll for an event
     /// </summary>
     /// <remarks>
-    /// Requires admin authentication. Creates a new poll for the specified event.
+    /// Admins can always create polls. Non-admin (guest) visitors can create a poll
+    /// only when the event has AllowGuestPolls enabled.
     /// </remarks>
     /// <param name="eventId">The unique identifier of the event</param>
     /// <param name="request">The poll request data containing question, options, and allowMultiple</param>
     /// <returns>The created poll with assigned ID</returns>
     /// <response code="201">Poll created successfully</response>
     /// <response code="400">Invalid request data or event not found</response>
-    /// <response code="401">Unauthorized - Admin authentication required</response>
+    /// <response code="401">Guest polls are not enabled for this event</response>
     [HttpPost]
-    [Authorize(Policy = "Admin")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(PollResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -90,6 +94,21 @@ public class PollsController : ControllerBase
         if (request == null)
         {
             return ErrorResponseHelper.BadRequestResponse("Request body is required.");
+        }
+
+        // Admins may always create polls. Guests may only create when the event opts in.
+        if (!User.IsInRole("Admin"))
+        {
+            var eventEntity = await _getEventHandler.HandleAsync(eventId);
+            if (eventEntity == null)
+            {
+                return ErrorResponseHelper.NotFoundResponse($"Event with ID {eventId} not found.");
+            }
+            if (!eventEntity.AllowGuestPolls)
+            {
+                return ErrorResponseHelper.UnauthorizedResponse(
+                    "Guest polls are not enabled for this event.");
+            }
         }
 
         try

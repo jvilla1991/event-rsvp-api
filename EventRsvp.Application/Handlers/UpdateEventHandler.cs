@@ -26,6 +26,7 @@ public class UpdateEventHandler
         eventEntity.EventDateTime = request.EventDateTime;
         eventEntity.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
         eventEntity.AllowTimeProposal = request.AllowTimeProposal;
+        eventEntity.AllowGuestPolls = request.AllowGuestPolls;
         eventEntity.UpdatedAt = DateTime.UtcNow;
 
         eventEntity.Validate();
@@ -40,6 +41,7 @@ public class UpdateEventHandler
             EventDateTime = updatedEvent.EventDateTime,
             Address = updatedEvent.Address,
             AllowTimeProposal = updatedEvent.AllowTimeProposal,
+            AllowGuestPolls = updatedEvent.AllowGuestPolls,
             CreatedAt = updatedEvent.CreatedAt,
             UpdatedAt = updatedEvent.UpdatedAt
         };
