@@ -10,6 +10,12 @@ public class Event
     public DateTime? EventDateTime { get; set; }
     public string? Address { get; set; }
     public bool AllowTimeProposal { get; set; }
+
+    /// <summary>
+    /// When true, public (non-admin) visitors may create polls on this event.
+    /// </summary>
+    public bool AllowGuestPolls { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
