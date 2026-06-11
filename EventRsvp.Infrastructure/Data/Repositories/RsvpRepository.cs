@@ -27,6 +27,12 @@ public class RsvpRepository : IRsvpRepository
         return rsvp;
     }
 
+    public async Task<Rsvp?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await _context.Rsvps
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+    }
+
     public async Task<Rsvp?> GetByEventIdAndNameAsync(int eventId, string name, CancellationToken cancellationToken = default)
     {
         return await _context.Rsvps
@@ -47,6 +53,18 @@ public class RsvpRepository : IRsvpRepository
             .Where(r => r.EventId == eventId)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var rsvp = await _context.Rsvps
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+        if (rsvp == null)
+            return false;
+
+        _context.Rsvps.Remove(rsvp);
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     public async Task DeleteByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
