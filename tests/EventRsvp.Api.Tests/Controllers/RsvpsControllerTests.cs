@@ -371,4 +371,111 @@ public class RsvpsControllerTests
         result!.Status.Should().Be("No");
         result.ProposedTime.Should().BeNull();
     }
+
+    // ── DELETE /api/events/{eventId}/rsvps/attendance/{source}/{id} ─────────────
+
+    private async Task<string> GetAdminTokenAsync()
+    {
+        var response = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Username = "admin",
+            Password = "admin123"
+        });
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+        return result!.Token;
+    }
+
+    private HttpClient CreateAuthenticatedClient(string token)
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        return client;
+    }
+
+    private async Task<int> CreateEventAsync()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<EventRsvpDbContext>();
+        var testEvent = new EventRsvp.Domain.Entities.Event { Title = "Test Event" };
+        dbContext.Events.Add(testEvent);
+        await dbContext.SaveChangesAsync();
+        return testEvent.Id;
+    }
+
+    [Test]
+    public async Task DeleteAttendee_WhenUnauthenticated_ShouldReturn401()
+    {
+        var eventId = await CreateEventAsync();
+
+        var response = await _client.DeleteAsync($"/api/events/{eventId}/rsvps/attendance/rsvp/1");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Test]
+    public async Task DeleteAttendee_WhenRsvpSourceAndExists_ShouldReturn200AndRemoveFromAttendance()
+    {
+        // Arrange — a walk-in RSVP
+        var eventId = await CreateEventAsync();
+        var createResponse = await _client.PostAsJsonAsync($"/api/events/{eventId}/rsvps",
+            new CreateRsvpRequest { Name = "Walk In", Status = "Yes" });
+        var created = await createResponse.Content.ReadFromJsonAsync<RsvpResponse>();
+
+        var token = await GetAdminTokenAsync();
+        using var auth = CreateAuthenticatedClient(token);
+
+        // Act
+        var deleteResponse = await auth.DeleteAsync($"/api/events/{eventId}/rsvps/attendance/rsvp/{created!.Id}");
+
+        // Assert
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var attendance = await _client.GetFromJsonAsync<List<AttendanceResponse>>(
+            $"/api/events/{eventId}/rsvps/attendance");
+        attendance!.Should().NotContain(a => a.Source == "rsvp" && a.Id == created.Id);
+    }
+
+    [Test]
+    public async Task DeleteAttendee_WhenInviteSourceAndExists_ShouldReturn200()
+    {
+        // Arrange — a tracked invite (public endpoint, no auth)
+        var eventId = await CreateEventAsync();
+        var inviteResponse = await _client.PostAsJsonAsync($"/api/events/{eventId}/invites",
+            new CreateInviteRequest { Name = "Invited Person" });
+        var invite = await inviteResponse.Content.ReadFromJsonAsync<InviteResponse>();
+
+        var token = await GetAdminTokenAsync();
+        using var auth = CreateAuthenticatedClient(token);
+
+        // Act
+        var deleteResponse = await auth.DeleteAsync($"/api/events/{eventId}/rsvps/attendance/invite/{invite!.Id}");
+
+        // Assert
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Test]
+    public async Task DeleteAttendee_WhenUnknownSource_ShouldReturn400()
+    {
+        var eventId = await CreateEventAsync();
+        var token = await GetAdminTokenAsync();
+        using var auth = CreateAuthenticatedClient(token);
+
+        var response = await auth.DeleteAsync($"/api/events/{eventId}/rsvps/attendance/bogus/1");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task DeleteAttendee_WhenRecordDoesNotExist_ShouldReturn404()
+    {
+        var eventId = await CreateEventAsync();
+        var token = await GetAdminTokenAsync();
+        using var auth = CreateAuthenticatedClient(token);
+
+        var response = await auth.DeleteAsync($"/api/events/{eventId}/rsvps/attendance/rsvp/99999");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }
