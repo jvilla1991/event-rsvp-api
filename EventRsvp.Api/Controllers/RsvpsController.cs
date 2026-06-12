@@ -1,6 +1,7 @@
 using EventRsvp.Api.Helpers;
 using EventRsvp.Application.DTOs;
 using EventRsvp.Application.Handlers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventRsvp.Api.Controllers;
@@ -16,15 +17,18 @@ public class RsvpsController : ControllerBase
     private readonly CreateRsvpHandler _createRsvpHandler;
     private readonly GetRsvpsByEventIdHandler _getRsvpsByEventIdHandler;
     private readonly GetAttendanceByEventIdHandler _getAttendanceByEventIdHandler;
+    private readonly DeleteAttendanceHandler _deleteAttendanceHandler;
 
     public RsvpsController(
         CreateRsvpHandler createRsvpHandler,
         GetRsvpsByEventIdHandler getRsvpsByEventIdHandler,
-        GetAttendanceByEventIdHandler getAttendanceByEventIdHandler)
+        GetAttendanceByEventIdHandler getAttendanceByEventIdHandler,
+        DeleteAttendanceHandler deleteAttendanceHandler)
     {
         _createRsvpHandler = createRsvpHandler;
         _getRsvpsByEventIdHandler = getRsvpsByEventIdHandler;
         _getAttendanceByEventIdHandler = getAttendanceByEventIdHandler;
+        _deleteAttendanceHandler = deleteAttendanceHandler;
     }
 
     /// <summary>
@@ -113,6 +117,51 @@ public class RsvpsController : ControllerBase
         {
             var attendance = await _getAttendanceByEventIdHandler.HandleAsync(eventId);
             return Ok(attendance);
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Removes a person from the event's attendance list
+    /// </summary>
+    /// <remarks>
+    /// Requires admin authentication. The attendance list merges tracked invites and
+    /// walk-in RSVPs, so <paramref name="source"/> ("invite" or "rsvp") selects which
+    /// record backs the row. Removing an invited person also deletes their matching
+    /// RSVP so they don't reappear as a walk-in entry.
+    /// </remarks>
+    /// <param name="eventId">The unique identifier of the event</param>
+    /// <param name="source">The attendance row's source: "invite" or "rsvp"</param>
+    /// <param name="id">The unique identifier of the backing invite or RSVP record</param>
+    /// <returns>Success message</returns>
+    /// <response code="200">Attendee removed successfully</response>
+    /// <response code="400">Unknown source or the record belongs to a different event</response>
+    /// <response code="401">Unauthorized - Admin authentication required</response>
+    /// <response code="404">Event or attendee not found</response>
+    [HttpDelete("attendance/{source}/{id}")]
+    [Authorize(Policy = "Admin")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> DeleteAttendee(int eventId, string source, int id)
+    {
+        try
+        {
+            var deleted = await _deleteAttendanceHandler.HandleAsync(eventId, source, id);
+            if (!deleted)
+                return ErrorResponseHelper.NotFoundResponse($"Attendee not found for {source} ID {id}.");
+
+            return Ok(new { message = "Attendee removed successfully" });
+        }
+        catch (Domain.Exceptions.InvalidRsvpException ex)
+        {
+            return ex.Message.Contains("not found")
+                ? ErrorResponseHelper.NotFoundResponse(ex.Message)
+                : ErrorResponseHelper.BadRequestResponse(ex.Message);
         }
         catch
         {
