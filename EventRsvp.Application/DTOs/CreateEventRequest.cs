@@ -50,4 +50,11 @@ public class CreateEventRequest
     /// </summary>
     /// <example>false</example>
     public bool AllowGuestPolls { get; set; }
+
+    /// <summary>
+    /// Optional cap on the number of "Yes" RSVPs the event will accept.
+    /// Null (omitted) means no limit. Must be greater than zero when provided.
+    /// </summary>
+    /// <example>50</example>
+    public int? AttendingLimit { get; set; }
 }

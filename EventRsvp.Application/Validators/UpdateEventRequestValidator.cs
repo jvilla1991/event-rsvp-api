@@ -19,5 +19,9 @@ public class UpdateEventRequestValidator : AbstractValidator<UpdateEventRequest>
         RuleFor(x => x.Address)
             .MaximumLength(500).WithMessage("Address cannot exceed 500 characters.")
             .When(x => !string.IsNullOrWhiteSpace(x.Address));
+
+        RuleFor(x => x.AttendingLimit)
+            .GreaterThan(0).WithMessage("Attending limit must be greater than zero.")
+            .When(x => x.AttendingLimit.HasValue);
     }
 }
