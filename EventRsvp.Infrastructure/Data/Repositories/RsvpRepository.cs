@@ -55,6 +55,21 @@ public class RsvpRepository : IRsvpRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<int> GetYesCountByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Rsvps
+            .CountAsync(r => r.EventId == eventId && r.Status == Domain.Enums.RsvpStatus.Yes, cancellationToken);
+    }
+
+    public async Task<IDictionary<int, int>> GetYesCountsByEventAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Rsvps
+            .Where(r => r.Status == Domain.Enums.RsvpStatus.Yes)
+            .GroupBy(r => r.EventId)
+            .Select(g => new { EventId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.EventId, x => x.Count, cancellationToken);
+    }
+
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
         var rsvp = await _context.Rsvps

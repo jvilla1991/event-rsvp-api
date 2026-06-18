@@ -16,6 +16,12 @@ public class Event
     /// </summary>
     public bool AllowGuestPolls { get; set; }
 
+    /// <summary>
+    /// Optional cap on the number of "Yes" RSVPs the event will accept.
+    /// Null means no limit. Only "Yes" responses count toward this cap.
+    /// </summary>
+    public int? AttendingLimit { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
@@ -29,6 +35,11 @@ public class Event
         if (Title.Length > 200)
         {
             throw new InvalidEventException("Title cannot exceed 200 characters.");
+        }
+
+        if (AttendingLimit.HasValue && AttendingLimit.Value <= 0)
+        {
+            throw new InvalidEventException("Attending limit must be greater than zero.");
         }
     }
 }

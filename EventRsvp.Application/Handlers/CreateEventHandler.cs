@@ -23,6 +23,7 @@ public class CreateEventHandler
             Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
             AllowTimeProposal = request.AllowTimeProposal,
             AllowGuestPolls = request.AllowGuestPolls,
+            AttendingLimit = request.AttendingLimit,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -39,6 +40,8 @@ public class CreateEventHandler
             Address = createdEvent.Address,
             AllowTimeProposal = createdEvent.AllowTimeProposal,
             AllowGuestPolls = createdEvent.AllowGuestPolls,
+            AttendingLimit = createdEvent.AttendingLimit,
+            AttendingCount = 0,
             CreatedAt = createdEvent.CreatedAt,
             UpdatedAt = createdEvent.UpdatedAt
         };
