@@ -50,4 +50,13 @@ public class UpdateEventRequest
     /// </summary>
     /// <example>false</example>
     public bool AllowGuestPolls { get; set; }
+
+    /// <summary>
+    /// Optional cap on the number of "Yes" RSVPs the event will accept.
+    /// Null (omitted) means no limit. Must be greater than zero when provided.
+    /// Lowering this below the current attending count keeps existing attendees;
+    /// it only blocks new "Yes" responses until the count drops.
+    /// </summary>
+    /// <example>50</example>
+    public int? AttendingLimit { get; set; }
 }

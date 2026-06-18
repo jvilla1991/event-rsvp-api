@@ -45,6 +45,20 @@ public class CreateRsvpHandler
         // Upsert: update existing RSVP for this person if one already exists
         var existing = await _rsvpRepository.GetByEventIdAndNameAsync(eventId, trimmedName, cancellationToken);
 
+        // Enforce the attending cap. Only a new "Yes" can push us over the limit; we subtract
+        // this person's own existing "Yes" so a returning attendee can re-save without being
+        // wrongly rejected as full.
+        if (status == RsvpStatus.Yes && eventEntity.AttendingLimit.HasValue)
+        {
+            var yesCount = await _rsvpRepository.GetYesCountByEventIdAsync(eventId, cancellationToken);
+            var alreadyCounted = existing?.Status == RsvpStatus.Yes ? 1 : 0;
+            if (yesCount - alreadyCounted >= eventEntity.AttendingLimit.Value)
+            {
+                throw new Domain.Exceptions.InvalidRsvpException(
+                    "This event is full. No more \"Yes\" responses can be accepted.");
+            }
+        }
+
         Rsvp rsvp;
         if (existing != null)
         {
