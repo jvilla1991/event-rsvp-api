@@ -8,10 +8,43 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using System.Text;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// If discrete DB_* env vars are present (App Runner/ECS wiring — CONS-2), compose the
+// Npgsql connection string here and inject it ahead of appsettings so nothing downstream
+// (health checks, EF Core DbContext, MIGRATE_ONLY) ever has to know how it was built.
+// This runs BEFORE ConnectionStrings:DefaultConnection is read anywhere below.
+// Falls back to an explicit ConnectionStrings__DefaultConnection env var / appsettings
+// value when DB_* are absent, so local dev and any not-yet-migrated deploy still work.
+var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
+var dbName = Environment.GetEnvironmentVariable("DB_NAME");
+var dbUser = Environment.GetEnvironmentVariable("DB_USER");
+var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+
+if (!string.IsNullOrEmpty(dbHost) && !string.IsNullOrEmpty(dbName) &&
+    !string.IsNullOrEmpty(dbUser) && !string.IsNullOrEmpty(dbPassword))
+{
+    var dbPortRaw = Environment.GetEnvironmentVariable("DB_PORT");
+    var dbPort = int.TryParse(dbPortRaw, out var parsedPort) ? parsedPort : 5432;
+
+    var composedConnectionString = new NpgsqlConnectionStringBuilder
+    {
+        Host = dbHost,
+        Port = dbPort,
+        Database = dbName,
+        Username = dbUser,
+        Password = dbPassword
+    }.ConnectionString;
+
+    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["ConnectionStrings:DefaultConnection"] = composedConnectionString
+    });
+}
 
 // Add services to the container
 builder.Services.AddControllers()
