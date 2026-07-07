@@ -5,6 +5,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Serialize deploys: a second push queues behind the running deploy instead of
+# racing it into App Runner's OPERATION_IN_PROGRESS error.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: event-rsvp-api
@@ -197,14 +203,35 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Wait for service steady state
+        # App Runner rejects updates while a previous operation is in progress
+        # (e.g. an earlier deploy still rolling). Wait until the service is RUNNING.
+        run: |
+          for i in $(seq 1 40); do
+            STATUS=$(aws apprunner describe-service \
+              --service-arn "${{ secrets.APPRUNNER_SERVICE_ARN }}" \
+              --query "Service.Status" --output text)
+            echo "  pre-deploy check $i: $STATUS"
+            if [ "$STATUS" = "RUNNING" ]; then exit 0; fi
+            sleep 15
+          done
+          echo "Service never reached RUNNING; cannot deploy." ; exit 1
+
       - name: Update App Runner service image
         env:
           IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
         run: |
-          aws apprunner update-service \
-            --service-arn "${{ secrets.APPRUNNER_SERVICE_ARN }}" \
-            --source-configuration "{\"ImageRepository\":{\"ImageIdentifier\":\"$IMAGE\",\"ImageRepositoryType\":\"ECR\"}}"
-          echo "App Runner update triggered for image: $IMAGE"
+          for attempt in 1 2 3; do
+            if aws apprunner update-service \
+              --service-arn "${{ secrets.APPRUNNER_SERVICE_ARN }}" \
+              --source-configuration "{\"ImageRepository\":{\"ImageIdentifier\":\"$IMAGE\",\"ImageRepositoryType\":\"ECR\"}}"; then
+              echo "App Runner update triggered for image: $IMAGE"
+              exit 0
+            fi
+            echo "update-service attempt $attempt failed (likely OPERATION_IN_PROGRESS); retrying in 60s..."
+            sleep 60
+          done
+          echo "update-service failed after 3 attempts." ; exit 1
 
       - name: Wait for App Runner deployment
         run: |
