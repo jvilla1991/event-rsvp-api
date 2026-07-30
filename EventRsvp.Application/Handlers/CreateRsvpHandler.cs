@@ -41,6 +41,7 @@ public class CreateRsvpHandler
         var trimmedName = request.Name.Trim();
         // A proposed time only makes sense when the person is not a definite Yes.
         var proposedTime = status == RsvpStatus.Yes ? null : request.ProposedTime;
+        var trimmedEmail = request.Email?.Trim();
 
         // Upsert: update existing RSVP for this person if one already exists
         var existing = await _rsvpRepository.GetByEventIdAndNameAsync(eventId, trimmedName, cancellationToken);
@@ -64,6 +65,11 @@ public class CreateRsvpHandler
         {
             existing.Status = status;
             existing.ProposedTime = proposedTime;
+            // A re-submitted RSVP also refreshes the wedding fields (meal, party size, etc.)
+            existing.Email = trimmedEmail;
+            existing.GuestCount = request.GuestCount;
+            existing.MealChoice = request.MealChoice;
+            existing.Note = request.Note;
             rsvp = await _rsvpRepository.UpdateAsync(existing, cancellationToken);
         }
         else
@@ -74,6 +80,10 @@ public class CreateRsvpHandler
                 Name = trimmedName,
                 Status = status,
                 ProposedTime = proposedTime,
+                Email = trimmedEmail,
+                GuestCount = request.GuestCount,
+                MealChoice = request.MealChoice,
+                Note = request.Note,
                 CreatedAt = DateTime.UtcNow
             };
             newRsvp.Validate();
@@ -111,6 +121,10 @@ public class CreateRsvpHandler
             Name = rsvp.Name,
             Status = rsvp.Status.ToString(),
             ProposedTime = rsvp.ProposedTime,
+            Email = rsvp.Email,
+            GuestCount = rsvp.GuestCount,
+            MealChoice = rsvp.MealChoice,
+            Note = rsvp.Note,
             CreatedAt = rsvp.CreatedAt
         };
     }

@@ -196,7 +196,7 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
 if (builder.Environment.IsDevelopment())
 {
     var devOrigins = allowedOrigins.ToList();
-    devOrigins.AddRange(new[] { "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:3000" });
+    devOrigins.AddRange(new[] { "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:3000", "http://localhost:4200", "http://127.0.0.1:4200" });
     allowedOrigins = devOrigins.Distinct().ToArray();
 }
 
