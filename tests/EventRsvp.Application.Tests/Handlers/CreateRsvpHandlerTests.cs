@@ -454,4 +454,144 @@ public class CreateRsvpHandlerTests
             It.Is<Rsvp>(rsvp => rsvp.ProposedTime == null),
             It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Test]
+    public async Task HandleAsync_WhenWeddingFieldsProvided_ShouldPersistThemOnCreate()
+    {
+        // Arrange
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            Status = "Yes",
+            Email = "  john.doe@example.com  ", // handler should trim
+            GuestCount = 2,
+            MealChoice = "Vegetarian",
+            Note = "Allergic to peanuts"
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Rsvp r, CancellationToken _) => r);
+
+        // Act
+        await _handler.HandleAsync(TestEventId, request);
+
+        // Assert — wedding fields land on the new entity, email trimmed
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Rsvp>(rsvp =>
+                rsvp.Email == "john.doe@example.com"
+                && rsvp.GuestCount == 2
+                && rsvp.MealChoice == "Vegetarian"
+                && rsvp.Note == "Allergic to peanuts"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenExistingRsvpResubmitted_ShouldOverwriteWeddingFields()
+    {
+        // Arrange — the person already RSVP'd with different wedding details
+        var existing = new Rsvp
+        {
+            Id = 1,
+            EventId = TestEventId,
+            Name = "John Doe",
+            Status = RsvpStatus.Yes,
+            Email = "old@example.com",
+            GuestCount = 1,
+            MealChoice = "Beef",
+            Note = "Old note",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.GetByEventIdAndNameAsync(TestEventId, "John Doe", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _rsvpRepositoryMock
+            .Setup(r => r.UpdateAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Rsvp r, CancellationToken _) => r);
+
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            Status = "Yes",
+            Email = "new@example.com",
+            GuestCount = 3,
+            MealChoice = "Fish",
+            Note = "New note"
+        };
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert — the upsert refreshed all four wedding fields on the existing entity
+        _rsvpRepositoryMock.Verify(r => r.UpdateAsync(
+            It.Is<Rsvp>(rsvp =>
+                rsvp.Id == 1
+                && rsvp.Email == "new@example.com"
+                && rsvp.GuestCount == 3
+                && rsvp.MealChoice == "Fish"
+                && rsvp.Note == "New note"),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()), Times.Never);
+        result.MealChoice.Should().Be("Fish");
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenWeddingFieldsProvided_ShouldEchoThemInResponse()
+    {
+        // Arrange
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            Status = "Yes",
+            Email = "john.doe@example.com",
+            GuestCount = 4,
+            MealChoice = "Chicken",
+            Note = "Looking forward to it!"
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Rsvp r, CancellationToken _) => r);
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert
+        result.Email.Should().Be("john.doe@example.com");
+        result.GuestCount.Should().Be(4);
+        result.MealChoice.Should().Be("Chicken");
+        result.Note.Should().Be("Looking forward to it!");
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenWeddingFieldsOmitted_ShouldLeaveThemNull()
+    {
+        // Arrange — a plain RSVP from an event that doesn't use the wedding fields
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            Status = "Yes"
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Rsvp r, CancellationToken _) => r);
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert — nothing was invented for the optional fields
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Rsvp>(rsvp =>
+                rsvp.Email == null
+                && rsvp.GuestCount == null
+                && rsvp.MealChoice == null
+                && rsvp.Note == null),
+            It.IsAny<CancellationToken>()), Times.Once);
+        result.Email.Should().BeNull();
+        result.GuestCount.Should().BeNull();
+        result.MealChoice.Should().BeNull();
+        result.Note.Should().BeNull();
+    }
 }
