@@ -34,5 +34,28 @@ public class CreateRsvpRequest
     /// invite's status is updated to Accepted or Declined automatically.
     /// </summary>
     public string? InviteToken { get; set; }
+
+    /// <summary>
+    /// Optional contact email of the person RSVPing (max 320 characters).
+    /// </summary>
+    /// <example>john.doe@example.com</example>
+    public string? Email { get; set; }
+
+    /// <summary>
+    /// Optional number of guests in the party, including the person RSVPing (1-4).
+    /// </summary>
+    /// <example>2</example>
+    public int? GuestCount { get; set; }
+
+    /// <summary>
+    /// Optional meal selection for events that offer one (max 100 characters).
+    /// </summary>
+    /// <example>Vegetarian</example>
+    public string? MealChoice { get; set; }
+
+    /// <summary>
+    /// Optional free-text note to the host (max 1000 characters).
+    /// </summary>
+    public string? Note { get; set; }
 }
 

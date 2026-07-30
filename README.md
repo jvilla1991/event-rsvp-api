@@ -59,16 +59,20 @@ The API will be available at:
 
 ## API Endpoints
 
-### POST /api/rsvps
-Create a new RSVP
+### POST /api/events/{eventId}/rsvps
+Create (or update) an RSVP for an event. Only `name` is required; `email`,
+`guestCount` (1-4), `mealChoice`, and `note` are optional extras for events
+that collect them (e.g. weddings).
 
 **Request Body:**
 ```json
 {
   "name": "John Doe",
-  "bringingDish": true,
-  "dishes": ["Pasta Salad", "Brownies"],
-  "whiteElephant": true
+  "status": "Yes",
+  "email": "john.doe@example.com",
+  "guestCount": 2,
+  "mealChoice": "Vegetarian",
+  "note": "Allergic to peanuts"
 }
 ```
 
@@ -77,15 +81,18 @@ Create a new RSVP
 {
   "id": 1,
   "name": "John Doe",
-  "bringingDish": true,
-  "dishes": ["Pasta Salad", "Brownies"],
-  "whiteElephant": true,
+  "status": "Yes",
+  "proposedTime": null,
+  "email": "john.doe@example.com",
+  "guestCount": 2,
+  "mealChoice": "Vegetarian",
+  "note": "Allergic to peanuts",
   "createdAt": "2024-12-16T12:00:00Z"
 }
 ```
 
-### GET /api/rsvps
-Get all RSVPs (ordered by CreatedAt descending)
+### GET /api/events/{eventId}/rsvps
+Get all RSVPs for an event (ordered by CreatedAt descending)
 
 **Response:** 200 OK
 ```json
@@ -93,9 +100,12 @@ Get all RSVPs (ordered by CreatedAt descending)
   {
     "id": 1,
     "name": "John Doe",
-    "bringingDish": true,
-    "dishes": ["Pasta Salad", "Brownies"],
-    "whiteElephant": true,
+    "status": "Yes",
+    "proposedTime": null,
+    "email": "john.doe@example.com",
+    "guestCount": 2,
+    "mealChoice": "Vegetarian",
+    "note": "Allergic to peanuts",
     "createdAt": "2024-12-16T12:00:00Z"
   }
 ]

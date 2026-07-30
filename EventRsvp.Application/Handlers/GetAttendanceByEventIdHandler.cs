@@ -31,6 +31,10 @@ public class GetAttendanceByEventIdHandler
 
             string? response = null;
             DateTime? proposedTime = null;
+            string? email = null;
+            int? guestCount = null;
+            string? mealChoice = null;
+            string? note = null;
 
             if (invite.Status == InviteStatus.Accepted
                 || invite.Status == InviteStatus.Declined
@@ -42,6 +46,10 @@ public class GetAttendanceByEventIdHandler
                 {
                     response = rsvp.Status.ToString();
                     proposedTime = rsvp.ProposedTime;
+                    email = rsvp.Email;
+                    guestCount = rsvp.GuestCount;
+                    mealChoice = rsvp.MealChoice;
+                    note = rsvp.Note;
                 }
             }
 
@@ -52,6 +60,10 @@ public class GetAttendanceByEventIdHandler
                 Status = invite.Status.ToString(),
                 Response = response,
                 ProposedTime = proposedTime,
+                Email = email,
+                GuestCount = guestCount,
+                MealChoice = mealChoice,
+                Note = note,
                 Source = "invite",
                 CreatedAt = invite.CreatedAt
             });
@@ -69,6 +81,10 @@ public class GetAttendanceByEventIdHandler
                     Status = ToAttendanceStatus(rsvp.Status),
                     Response = rsvp.Status.ToString(),
                     ProposedTime = rsvp.ProposedTime,
+                    Email = rsvp.Email,
+                    GuestCount = rsvp.GuestCount,
+                    MealChoice = rsvp.MealChoice,
+                    Note = rsvp.Note,
                     Source = "rsvp",
                     CreatedAt = rsvp.CreatedAt
                 });
