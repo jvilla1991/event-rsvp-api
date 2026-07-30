@@ -44,6 +44,15 @@ public class EventRsvpDbContext : DbContext
             entity.Property(e => e.ProposedTime)
                 .HasColumnType("timestamp with time zone");
 
+            entity.Property(e => e.Email)
+                .HasMaxLength(320);
+
+            entity.Property(e => e.MealChoice)
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Note)
+                .HasMaxLength(1000);
+
             entity.Property(e => e.CreatedAt)
                 .IsRequired()
                 .HasDefaultValueSql("NOW()");

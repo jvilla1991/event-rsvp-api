@@ -24,6 +24,10 @@ public class GetRsvpsByEventIdHandler
                 Name = r.Name,
                 Status = r.Status.ToString(),
                 ProposedTime = r.ProposedTime,
+                Email = r.Email,
+                GuestCount = r.GuestCount,
+                MealChoice = r.MealChoice,
+                Note = r.Note,
                 CreatedAt = r.CreatedAt
             });
     }
