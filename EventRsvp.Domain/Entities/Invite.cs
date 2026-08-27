@@ -19,6 +19,13 @@ public class Invite
     /// </summary>
     public string Token { get; set; } = string.Empty;
 
+    /// <summary>
+    /// When true, the recipient of this invite is permitted to bring one additional
+    /// guest (a "+1"). The guest-name fields only appear on the RSVP form for invites
+    /// where this is set. Defaults to false.
+    /// </summary>
+    public bool AllowGuest { get; set; }
+
     public InviteStatus Status { get; set; } = InviteStatus.NotOpened;
 
     /// <summary>
