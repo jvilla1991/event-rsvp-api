@@ -213,6 +213,10 @@ public class EventRsvpDbContext : DbContext
             entity.HasIndex(e => e.Token)
                 .IsUnique();
 
+            entity.Property(e => e.AllowGuest)
+                .IsRequired()
+                .HasDefaultValue(false);
+
             // Status is NOT configured with HasDefaultValue() intentionally.
             // Using HasDefaultValue(0) sets ValueGeneratedOnAdd on the property, which
             // causes EF Core to treat 0 as a sentinel and exclude Status from UPDATE
