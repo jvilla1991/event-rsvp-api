@@ -13,6 +13,11 @@ public class InviteResponse
     public string Token { get; set; } = string.Empty;
 
     /// <summary>
+    /// When true, this recipient may bring one additional guest (a "+1").
+    /// </summary>
+    public bool AllowGuest { get; set; }
+
+    /// <summary>
     /// Current invite status: NotOpened, Opened, Accepted, or Declined
     /// </summary>
     public string Status { get; set; } = "NotOpened";

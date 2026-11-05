@@ -28,6 +28,7 @@ public class GetInvitesByEventIdHandler
             Id = i.Id,
             EventId = i.EventId,
             Name = i.Name,
+            AllowGuest = i.AllowGuest,
             Token = i.Token,
             Status = i.Status.ToString(),
             ViewedAt = i.ViewedAt,

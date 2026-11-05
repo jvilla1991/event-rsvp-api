@@ -26,6 +26,7 @@ public class CreateInviteHandler
         {
             EventId = eventId,
             Name = request.Name?.Trim() ?? string.Empty,
+            AllowGuest = request.AllowGuest,
             Token = Guid.NewGuid().ToString("N"), // compact lowercase hex token
             CreatedAt = DateTime.UtcNow
         };
@@ -42,6 +43,7 @@ public class CreateInviteHandler
         Id = invite.Id,
         EventId = invite.EventId,
         Name = invite.Name,
+        AllowGuest = invite.AllowGuest,
         Token = invite.Token,
         Status = invite.Status.ToString(),
         ViewedAt = invite.ViewedAt,

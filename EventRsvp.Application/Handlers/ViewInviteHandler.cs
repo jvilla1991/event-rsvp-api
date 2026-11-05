@@ -42,6 +42,7 @@ public class ViewInviteHandler
             Id = invite.Id,
             EventId = invite.EventId,
             Name = invite.Name,
+            AllowGuest = invite.AllowGuest,
             Token = invite.Token,
             Status = invite.Status.ToString(),
             ViewedAt = invite.ViewedAt,
