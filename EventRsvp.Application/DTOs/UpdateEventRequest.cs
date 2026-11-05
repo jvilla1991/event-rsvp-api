@@ -52,6 +52,14 @@ public class UpdateEventRequest
     public bool AllowGuestPolls { get; set; }
 
     /// <summary>
+    /// When true, this is a "bring a dish" (potluck) event. Attendees who respond
+    /// "Yes" are prompted to list the dish(es) they are bringing. Defaults to false.
+    /// Turning this off does not erase dishes already recorded on existing RSVPs.
+    /// </summary>
+    /// <example>false</example>
+    public bool IsBringADish { get; set; }
+
+    /// <summary>
     /// Optional cap on the number of "Yes" RSVPs the event will accept.
     /// Null (omitted) means no limit. Must be greater than zero when provided.
     /// Lowering this below the current attending count keeps existing attendees;

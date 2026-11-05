@@ -59,6 +59,11 @@ namespace EventRsvp.Infrastructure.Migrations
                     b.Property<DateTime?>("EventDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsBringADish")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -199,6 +204,12 @@ namespace EventRsvp.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Dishes")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValueSql("'[]'::jsonb");
 
                     b.Property<string>("Email")
                         .HasMaxLength(320)

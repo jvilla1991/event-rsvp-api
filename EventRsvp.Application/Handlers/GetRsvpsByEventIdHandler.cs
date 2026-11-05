@@ -28,6 +28,7 @@ public class GetRsvpsByEventIdHandler
                 GuestCount = r.GuestCount,
                 MealChoice = r.MealChoice,
                 Note = r.Note,
+                Dishes = r.Dishes,
                 CreatedAt = r.CreatedAt
             });
     }

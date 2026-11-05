@@ -146,4 +146,59 @@ public class CreateRsvpRequestValidatorTests
 
         result.ShouldNotHaveAnyValidationErrors();
     }
+
+    [Test]
+    public void Validate_WhenDishesNull_ShouldBeValid()
+    {
+        var request = ValidRequest();
+        request.Dishes = null;
+
+        var result = _validator.TestValidate(request);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.Dishes);
+    }
+
+    [Test]
+    public void Validate_WhenDishesWithinLimits_ShouldBeValid()
+    {
+        var request = ValidRequest();
+        request.Dishes = new List<string> { "Potato salad", "Brownies" };
+
+        var result = _validator.TestValidate(request);
+
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Test]
+    public void Validate_WhenMoreThanTwentyDishes_ShouldHaveError()
+    {
+        var request = ValidRequest();
+        request.Dishes = Enumerable.Range(1, 21).Select(i => $"Dish {i}").ToList();
+
+        var result = _validator.TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.Dishes);
+    }
+
+    [Test]
+    public void Validate_WhenTwentyDishes_ShouldBeValid()
+    {
+        var request = ValidRequest();
+        request.Dishes = Enumerable.Range(1, 20).Select(i => $"Dish {i}").ToList();
+
+        var result = _validator.TestValidate(request);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.Dishes);
+    }
+
+    [Test]
+    public void Validate_WhenDishNameExceedsMaxLength_ShouldHaveError()
+    {
+        var request = ValidRequest();
+        request.Dishes = new List<string> { new string('x', 201) };
+
+        var result = _validator.TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor("Dishes[0]");
+    }
 }

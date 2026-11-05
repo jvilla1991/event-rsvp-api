@@ -29,6 +29,7 @@ public class UpdateEventHandler
         eventEntity.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
         eventEntity.AllowTimeProposal = request.AllowTimeProposal;
         eventEntity.AllowGuestPolls = request.AllowGuestPolls;
+        eventEntity.IsBringADish = request.IsBringADish;
         eventEntity.AttendingLimit = request.AttendingLimit;
         eventEntity.UpdatedAt = DateTime.UtcNow;
 
@@ -46,6 +47,7 @@ public class UpdateEventHandler
             Address = updatedEvent.Address,
             AllowTimeProposal = updatedEvent.AllowTimeProposal,
             AllowGuestPolls = updatedEvent.AllowGuestPolls,
+            IsBringADish = updatedEvent.IsBringADish,
             AttendingLimit = updatedEvent.AttendingLimit,
             AttendingCount = attendingCount,
             CreatedAt = updatedEvent.CreatedAt,

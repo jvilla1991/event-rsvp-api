@@ -11,6 +11,12 @@ public class EventResponse
     public bool AllowGuestPolls { get; set; }
 
     /// <summary>
+    /// When true, this is a "bring a dish" (potluck) event. The frontend uses this
+    /// to show the dish prompt on the RSVP form and the dish list on the attendee view.
+    /// </summary>
+    public bool IsBringADish { get; set; }
+
+    /// <summary>
     /// Optional cap on the number of "Yes" RSVPs. Null means no limit.
     /// </summary>
     public int? AttendingLimit { get; set; }

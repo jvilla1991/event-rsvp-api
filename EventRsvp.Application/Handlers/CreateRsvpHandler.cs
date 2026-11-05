@@ -43,6 +43,13 @@ public class CreateRsvpHandler
         var proposedTime = status == RsvpStatus.Yes ? null : request.ProposedTime;
         var trimmedEmail = request.Email?.Trim();
 
+        // Dishes only apply to a "bring a dish" event and only for a definite "Yes".
+        // For any other case we store an empty list, which also clears dishes if a
+        // previous "Yes" is changed to "No"/"Maybe" on re-submission.
+        var dishes = eventEntity.IsBringADish && status == RsvpStatus.Yes
+            ? SanitizeDishes(request.Dishes)
+            : new List<string>();
+
         // Upsert: update existing RSVP for this person if one already exists
         var existing = await _rsvpRepository.GetByEventIdAndNameAsync(eventId, trimmedName, cancellationToken);
 
@@ -70,6 +77,7 @@ public class CreateRsvpHandler
             existing.GuestCount = request.GuestCount;
             existing.MealChoice = request.MealChoice;
             existing.Note = request.Note;
+            existing.Dishes = dishes;
             rsvp = await _rsvpRepository.UpdateAsync(existing, cancellationToken);
         }
         else
@@ -84,6 +92,7 @@ public class CreateRsvpHandler
                 GuestCount = request.GuestCount,
                 MealChoice = request.MealChoice,
                 Note = request.Note,
+                Dishes = dishes,
                 CreatedAt = DateTime.UtcNow
             };
             newRsvp.Validate();
@@ -125,8 +134,29 @@ public class CreateRsvpHandler
             GuestCount = rsvp.GuestCount,
             MealChoice = rsvp.MealChoice,
             Note = rsvp.Note,
+            Dishes = rsvp.Dishes,
             CreatedAt = rsvp.CreatedAt
         };
+    }
+
+    /// <summary>
+    /// Maximum number of dishes a single attendee can list. A soft guardrail against abuse.
+    /// </summary>
+    private const int MaxDishes = 20;
+
+    /// <summary>
+    /// Trims each dish name, drops blanks, and caps the list length.
+    /// </summary>
+    private static List<string> SanitizeDishes(List<string>? dishes)
+    {
+        if (dishes == null)
+            return new List<string>();
+
+        return dishes
+            .Where(d => !string.IsNullOrWhiteSpace(d))
+            .Select(d => d.Trim())
+            .Take(MaxDishes)
+            .ToList();
     }
 
     /// <summary>
