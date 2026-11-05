@@ -139,4 +139,67 @@ public class GetAttendanceByEventIdHandlerTests
         row.MealChoice.Should().BeNull();
         row.Note.Should().BeNull();
     }
+
+    [Test]
+    public async Task HandleAsync_WhenAcceptedInviteeBroughtDishes_ShouldMapDishesOntoRow()
+    {
+        // Arrange — an accepted invitee who listed two dishes
+        var invites = new List<Invite>
+        {
+            new() { Id = 10, EventId = TestEventId, Name = "Alice", Token = "token1", Status = InviteStatus.Accepted, CreatedAt = DateTime.UtcNow }
+        };
+        var rsvps = new List<Rsvp>
+        {
+            new()
+            {
+                Id = 1,
+                EventId = TestEventId,
+                Name = "Alice",
+                Status = RsvpStatus.Yes,
+                Dishes = new List<string> { "Potato salad", "Brownies" },
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+
+        _inviteRepositoryMock
+            .Setup(r => r.GetByEventIdAsync(TestEventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(invites);
+        _rsvpRepositoryMock
+            .Setup(r => r.GetByEventIdAsync(TestEventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rsvps);
+
+        // Act
+        var result = (await _handler.HandleAsync(TestEventId)).ToList();
+
+        // Assert
+        result.Single().Dishes.Should().Equal("Potato salad", "Brownies");
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenWalkInRsvpBroughtDishes_ShouldMapDishesOntoRow()
+    {
+        // Arrange — someone who RSVP'd without a tracked invite
+        var rsvps = new List<Rsvp>
+        {
+            new()
+            {
+                Id = 2,
+                EventId = TestEventId,
+                Name = "Dave",
+                Status = RsvpStatus.Yes,
+                Dishes = new List<string> { "Chili" },
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.GetByEventIdAsync(TestEventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rsvps);
+
+        // Act
+        var result = (await _handler.HandleAsync(TestEventId)).ToList();
+
+        // Assert
+        result.Single(r => r.Name == "Dave").Dishes.Should().Equal("Chili");
+    }
 }

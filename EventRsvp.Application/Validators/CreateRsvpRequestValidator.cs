@@ -28,5 +28,16 @@ public class CreateRsvpRequestValidator : AbstractValidator<CreateRsvpRequest>
 
         RuleFor(x => x.Note)
             .MaximumLength(1000).WithMessage("Note cannot exceed 1000 characters.");
+
+        // Dishes are optional. Count only non-blank entries toward the cap, since
+        // the handler drops blanks before persisting.
+        RuleFor(x => x.Dishes)
+            .Must(dishes => dishes!.Count(d => !string.IsNullOrWhiteSpace(d)) <= 20)
+            .WithMessage("You can list at most 20 dishes.")
+            .When(x => x.Dishes != null);
+
+        RuleForEach(x => x.Dishes)
+            .MaximumLength(200).WithMessage("Each dish name cannot exceed 200 characters.")
+            .When(x => x.Dishes != null);
     }
 }

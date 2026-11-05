@@ -34,6 +34,7 @@ public class GetEventHandler
             Address = eventEntity.Address,
             AllowTimeProposal = eventEntity.AllowTimeProposal,
             AllowGuestPolls = eventEntity.AllowGuestPolls,
+            IsBringADish = eventEntity.IsBringADish,
             AttendingLimit = eventEntity.AttendingLimit,
             AttendingCount = attendingCount,
             CreatedAt = eventEntity.CreatedAt,

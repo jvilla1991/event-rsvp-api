@@ -594,4 +594,162 @@ public class CreateRsvpHandlerTests
         result.MealChoice.Should().BeNull();
         result.Note.Should().BeNull();
     }
+
+    // ----- "Bring a dish" (potluck) behavior -----
+
+    private void SetUpBringADishEvent()
+    {
+        _eventRepositoryMock
+            .Setup(r => r.GetByIdAsync(TestEventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Event { Id = TestEventId, Title = "Potluck", IsBringADish = true });
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenBringADishEventAndYes_ShouldPersistDishes()
+    {
+        // Arrange
+        SetUpBringADishEvent();
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            Status = "Yes",
+            Dishes = new List<string> { "Potato salad", "Brownies" }
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Rsvp r, CancellationToken _) => r);
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert — both dishes persisted and echoed back
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Rsvp>(rsvp => rsvp.Dishes.SequenceEqual(new[] { "Potato salad", "Brownies" })),
+            It.IsAny<CancellationToken>()), Times.Once);
+        result.Dishes.Should().Equal("Potato salad", "Brownies");
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenDishesHaveBlanksAndWhitespace_ShouldTrimAndDropBlanks()
+    {
+        // Arrange
+        SetUpBringADishEvent();
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            Status = "Yes",
+            Dishes = new List<string> { "  Pie  ", "", "   ", "Salad" }
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Rsvp r, CancellationToken _) => r);
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert — blanks dropped, surviving names trimmed, order preserved
+        result.Dishes.Should().Equal("Pie", "Salad");
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenNotBringADishEvent_ShouldIgnoreDishes()
+    {
+        // Arrange — default event has IsBringADish = false
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            Status = "Yes",
+            Dishes = new List<string> { "Potato salad" }
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Rsvp r, CancellationToken _) => r);
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert — dishes are ignored for non-potluck events
+        _rsvpRepositoryMock.Verify(r => r.AddAsync(
+            It.Is<Rsvp>(rsvp => rsvp.Dishes.Count == 0),
+            It.IsAny<CancellationToken>()), Times.Once);
+        result.Dishes.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenBringADishEventButStatusNotYes_ShouldIgnoreDishes()
+    {
+        // Arrange — a potluck event, but the person declines
+        SetUpBringADishEvent();
+        var request = new CreateRsvpRequest
+        {
+            Name = "John Doe",
+            Status = "Maybe",
+            Dishes = new List<string> { "Potato salad" }
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Rsvp r, CancellationToken _) => r);
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert — dishes only apply to a definite "Yes"
+        result.Dishes.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenResubmittedAsNo_ShouldClearExistingDishes()
+    {
+        // Arrange — John already brought dishes, now changes his answer to No
+        SetUpBringADishEvent();
+        var existing = new Rsvp
+        {
+            Id = 1,
+            EventId = TestEventId,
+            Name = "John Doe",
+            Status = RsvpStatus.Yes,
+            Dishes = new List<string> { "Potato salad" },
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.GetByEventIdAndNameAsync(TestEventId, "John Doe", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _rsvpRepositoryMock
+            .Setup(r => r.UpdateAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Rsvp r, CancellationToken _) => r);
+
+        var request = new CreateRsvpRequest { Name = "John Doe", Status = "No" };
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert — the stale dishes are cleared on the upsert
+        _rsvpRepositoryMock.Verify(r => r.UpdateAsync(
+            It.Is<Rsvp>(rsvp => rsvp.Dishes.Count == 0),
+            It.IsAny<CancellationToken>()), Times.Once);
+        result.Dishes.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenBringADishEventAndNoDishesProvided_ShouldStoreEmptyList()
+    {
+        // Arrange — accepting a potluck without listing anything is allowed (optional)
+        SetUpBringADishEvent();
+        var request = new CreateRsvpRequest { Name = "John Doe", Status = "Yes", Dishes = null };
+
+        _rsvpRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Rsvp>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Rsvp r, CancellationToken _) => r);
+
+        // Act
+        var result = await _handler.HandleAsync(TestEventId, request);
+
+        // Assert
+        result.Dishes.Should().BeEmpty();
+    }
 }

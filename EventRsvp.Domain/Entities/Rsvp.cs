@@ -39,6 +39,13 @@ public class Rsvp
     /// </summary>
     public string? Note { get; set; }
 
+    /// <summary>
+    /// Names of the dish(es) this attendee is bringing to a "bring a dish" event.
+    /// Only populated for "Yes" responses on events where <see cref="Event.IsBringADish"/>
+    /// is true; empty for every other RSVP.
+    /// </summary>
+    public List<string> Dishes { get; set; } = new();
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public void Validate()

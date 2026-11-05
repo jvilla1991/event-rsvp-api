@@ -38,6 +38,12 @@ public class AttendanceResponse
     public string? Note { get; set; }
 
     /// <summary>
+    /// Dish names this attendee is bringing to a "bring a dish" event.
+    /// Empty for non-potluck events or responses other than "Yes".
+    /// </summary>
+    public List<string> Dishes { get; set; } = new();
+
+    /// <summary>
     /// "invite" for tracked invitees, "rsvp" for walk-in responses
     /// </summary>
     public string Source { get; set; } = string.Empty;

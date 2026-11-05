@@ -35,6 +35,7 @@ public class GetAttendanceByEventIdHandler
             int? guestCount = null;
             string? mealChoice = null;
             string? note = null;
+            var dishes = new List<string>();
 
             if (invite.Status == InviteStatus.Accepted
                 || invite.Status == InviteStatus.Declined
@@ -50,6 +51,7 @@ public class GetAttendanceByEventIdHandler
                     guestCount = rsvp.GuestCount;
                     mealChoice = rsvp.MealChoice;
                     note = rsvp.Note;
+                    dishes = rsvp.Dishes;
                 }
             }
 
@@ -64,6 +66,7 @@ public class GetAttendanceByEventIdHandler
                 GuestCount = guestCount,
                 MealChoice = mealChoice,
                 Note = note,
+                Dishes = dishes,
                 Source = "invite",
                 CreatedAt = invite.CreatedAt
             });
@@ -85,6 +88,7 @@ public class GetAttendanceByEventIdHandler
                     GuestCount = rsvp.GuestCount,
                     MealChoice = rsvp.MealChoice,
                     Note = rsvp.Note,
+                    Dishes = rsvp.Dishes,
                     Source = "rsvp",
                     CreatedAt = rsvp.CreatedAt
                 });

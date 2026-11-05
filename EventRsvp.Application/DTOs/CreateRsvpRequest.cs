@@ -57,5 +57,13 @@ public class CreateRsvpRequest
     /// Optional free-text note to the host (max 1000 characters).
     /// </summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// Dish names this attendee is bringing to a "bring a dish" event.
+    /// Ignored unless the event is a bring-a-dish event and the status is "Yes".
+    /// Blank entries are dropped; up to 20 dishes, each up to 200 characters.
+    /// </summary>
+    /// <example>["Potato salad", "Brownies"]</example>
+    public List<string>? Dishes { get; set; }
 }
 
