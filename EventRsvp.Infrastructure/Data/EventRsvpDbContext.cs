@@ -53,6 +53,20 @@ public class EventRsvpDbContext : DbContext
             entity.Property(e => e.Note)
                 .HasMaxLength(1000);
 
+            // Store the dish list as JSON, mirroring how Poll.Options is persisted.
+            var dishesProperty = entity.Property(e => e.Dishes)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
+                    v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null!) ?? new List<string>())
+                .HasColumnType("jsonb")
+                .HasDefaultValueSql("'[]'::jsonb");
+
+            // ValueComparer so EF change-tracks list mutations correctly
+            dishesProperty.Metadata.SetValueComparer(new ValueComparer<List<string>>(
+                (c1, c2) => c1!.SequenceEqual(c2!),
+                c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                c => c.ToList()));
+
             entity.Property(e => e.CreatedAt)
                 .IsRequired()
                 .HasDefaultValueSql("NOW()");
@@ -95,6 +109,10 @@ public class EventRsvpDbContext : DbContext
                 .HasDefaultValue(false);
 
             entity.Property(e => e.AllowGuestPolls)
+                .IsRequired()
+                .HasDefaultValue(false);
+
+            entity.Property(e => e.IsBringADish)
                 .IsRequired()
                 .HasDefaultValue(false);
 

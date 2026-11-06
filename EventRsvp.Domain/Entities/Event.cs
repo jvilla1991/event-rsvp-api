@@ -17,6 +17,13 @@ public class Event
     public bool AllowGuestPolls { get; set; }
 
     /// <summary>
+    /// When true, this is a "bring a dish" (potluck) event. Attendees who respond
+    /// "Yes" are invited to list the dish(es) they are bringing, which then appear
+    /// on the public attendee list. Defaults to false.
+    /// </summary>
+    public bool IsBringADish { get; set; }
+
+    /// <summary>
     /// Optional cap on the number of "Yes" RSVPs the event will accept.
     /// Null means no limit. Only "Yes" responses count toward this cap.
     /// </summary>

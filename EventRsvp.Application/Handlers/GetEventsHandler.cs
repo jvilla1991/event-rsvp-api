@@ -29,6 +29,7 @@ public class GetEventsHandler
             Address = e.Address,
             AllowTimeProposal = e.AllowTimeProposal,
             AllowGuestPolls = e.AllowGuestPolls,
+            IsBringADish = e.IsBringADish,
             AttendingLimit = e.AttendingLimit,
             AttendingCount = yesCounts.TryGetValue(e.Id, out var count) ? count : 0,
             CreatedAt = e.CreatedAt,
